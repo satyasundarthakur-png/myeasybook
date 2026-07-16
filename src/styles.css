@@ -4,6 +4,31 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Pagebound design tokens — ink/leather/brass bookbinding theme */
+@theme {
+  --color-ink: #1C1B19;
+  --color-ink-soft: #2A2825;
+  --color-ink-faint: #3D3A35;
+  --color-paper: #E8E2D0;
+  --color-paper-bright: #F2EEE1;
+  --color-paper-dim: #D9D2BC;
+  --color-brass: #B8873B;
+  --color-brass-bright: #D6A75A;
+  --color-brass-dim: #8C6529;
+  --color-leather: #6B2737;
+  --color-leather-bright: #8A3547;
+  --color-leather-dim: #4E1B27;
+  --color-moss: #3F6659;
+  --color-moss-bright: #537F70;
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+  --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;
+}
+
+@utility bg-grain {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+}
+
 /*
  * Design system definition.
  *
