@@ -1,5 +1,6 @@
 import type { Stage } from '../types/book';
 import { useBookStore } from '../store/useBookStore';
+import AiSettingsPanel from './AiSettingsPanel';
 
 const STAGES: { id: Stage; label: string }[] = [
   { id: 'upload', label: 'Manuscript' },
@@ -80,6 +81,12 @@ export default function Spine() {
           );
         })}
       </nav>
+
+      {/* AI configuration, relocated from the header to keep the workspace clean */}
+      <div className="mx-6 border-t border-ink-faint" />
+      <div className="px-3 py-4">
+        <AiSettingsPanel />
+      </div>
 
       {/* Publisher's imprint line */}
       <div className="mx-6 border-t border-ink-faint" />

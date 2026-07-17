@@ -38,9 +38,9 @@ export default function UploadStage() {
 
       {!groqApiKey && (
         <div className="mb-6 border border-brass/40 bg-brass/5 text-brass-dim text-sm font-body px-4 py-3">
-          Tip: add your Groq API key (top right) before uploading — it improves chapter detection for
-          manuscripts without clear "Chapter" headings, and unlocks polishing, the introduction, and
-          the index later.
+          Tip: add your Groq API key (AI Settings, bottom of the sidebar) before uploading — it improves
+          chapter detection for manuscripts without clear "Chapter" headings, and unlocks polishing, the
+          introduction, and the index later.
         </div>
       )}
 
@@ -55,11 +55,17 @@ export default function UploadStage() {
           setDragOver(false);
           handleFile(e.dataTransfer.files?.[0]);
         }}
-        className={`flex flex-col items-center justify-center gap-3 border border-dashed py-20 cursor-pointer transition-colors ${
-          dragOver ? 'border-crimson bg-crimson/5' : 'border-paper-dim hover:border-crimson/50'
+        className={`flex flex-col items-center justify-center gap-3 border border-dashed py-20 cursor-pointer transition-all duration-200 ${
+          dragOver
+            ? 'border-amber-bright bg-amber/5 scale-[1.02] shadow-lg'
+            : 'border-paper-dim hover:border-crimson/50'
         }`}
       >
-        <UploadCloud size={36} className="text-crimson" strokeWidth={1.25} />
+        <UploadCloud
+          size={36}
+          strokeWidth={1.25}
+          className={dragOver ? 'text-amber-bright animate-pulse' : 'text-crimson'}
+        />
         <p className="font-body text-ink">Drop your manuscript here, or click to browse</p>
         <p className="font-mono text-xs text-ink/35 tracking-wide">.DOCX · .TXT · .MD</p>
         <input

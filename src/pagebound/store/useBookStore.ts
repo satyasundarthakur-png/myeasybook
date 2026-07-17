@@ -13,7 +13,7 @@ interface BookActions {
   setCover: (patch: Partial<BookState['cover']>) => void;
   uploadFile: (file: File) => Promise<void>;
   polishAllChapters: () => Promise<void>;
-  polishOneChapter: (id: string) => Promise<void>;
+  polishSingleChapter: (id: string) => Promise<void>;
   updateChapterText: (id: string, text: string) => void;
   generateIntro: () => Promise<void>;
   buildIndex: () => Promise<void>;
@@ -100,7 +100,7 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
     }
   },
 
-  polishOneChapter: async (id: string) => {
+  polishSingleChapter: async (id: string) => {
     const { chapters, groqApiKey, groqModel } = get();
     const chapter = chapters.find((c) => c.id === id);
     if (!chapter) return;
@@ -150,7 +150,7 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
 
       let succeeded = false;
       try {
-        await get().polishOneChapter(chapter.id);
+        await get().polishSingleChapter(chapter.id);
         succeeded = true;
       } catch {
         succeeded = false;

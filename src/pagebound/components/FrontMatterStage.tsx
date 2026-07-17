@@ -31,7 +31,7 @@ export default function FrontMatterStage() {
       </button>
 
       {!groqApiKey && (
-        <p className="text-sm text-brass-dim mb-4">Add a Groq API key (top right) to generate a draft.</p>
+        <p className="text-sm text-brass-dim mb-4">Add a Groq API key (AI Settings, bottom of the sidebar) to generate a draft.</p>
       )}
       {error && <p className="text-sm text-rust mb-4">{error}</p>}
 

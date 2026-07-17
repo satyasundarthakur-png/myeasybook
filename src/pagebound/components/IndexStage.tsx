@@ -35,7 +35,7 @@ export default function IndexStage() {
       </button>
 
       {!groqApiKey && (
-        <p className="text-sm text-brass-dim mb-4">Add a Groq API key (top right) to build the index.</p>
+        <p className="text-sm text-brass-dim mb-4">Add a Groq API key (AI Settings, bottom of the sidebar) to build the index.</p>
       )}
       {error && <p className="text-sm text-rust mb-4">{error}</p>}
 
