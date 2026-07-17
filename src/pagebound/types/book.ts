@@ -81,5 +81,6 @@ export interface BookState {
   polishProgress: PolishProgress | null;
   ocrFixProgress: PolishProgress | null;
   indexProgress: { total: number; processed: number } | null;
+  lastBatchError: string | null;
   lastCleanupNote: string | null;
 }

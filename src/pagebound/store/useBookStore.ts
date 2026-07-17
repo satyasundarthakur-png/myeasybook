@@ -63,6 +63,7 @@ const initialState: BookState = {
   ocrFixProgress: null,
   indexProgress: null,
   lastCleanupNote: null,
+  lastBatchError: null,
 };
 
 export const useBookStore = create<BookState & BookActions>((set, get) => ({
@@ -155,7 +156,12 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
     set({
       isProcessing: true,
       ocrFixProgress: { total, processed: 0, succeeded: 0, failed: 0 },
+      lastBatchError: null,
     });
+
+    const MAX_CONSECUTIVE_FAILURES = 5;
+    let consecutiveFailures = 0;
+    let stoppedEarly = false;
 
     for (let i = 0; i < chapters.length; i++) {
       const chapter = chapters[i];
@@ -169,8 +175,11 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
       try {
         await get().fixSingleChapterOcr(chapter.id);
         succeeded = true;
-      } catch {
+        consecutiveFailures = 0;
+      } catch (err) {
         succeeded = false;
+        consecutiveFailures++;
+        set({ lastBatchError: (err as Error).message });
       }
 
       set((s) => ({
@@ -184,13 +193,23 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
           : null,
       }));
 
+      if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+        stoppedEarly = true;
+        break;
+      }
+
       if (i < chapters.length - 1) await sleep(150);
     }
 
     const final = get().ocrFixProgress;
+    const lastError = get().lastBatchError;
     set({
       isProcessing: false,
-      processingMessage: final ? `Done: ${final.succeeded}/${final.total} fixed, ${final.failed} failed` : '',
+      processingMessage: stoppedEarly
+        ? `Stopped after ${MAX_CONSECUTIVE_FAILURES} failures in a row — likely a systemic issue, not per-chapter. Last error: ${lastError}`
+        : final
+          ? `Done: ${final.succeeded}/${final.total} fixed, ${final.failed} failed`
+          : '',
     });
   },
 
@@ -233,7 +252,12 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
     set({
       isProcessing: true,
       polishProgress: { total, processed: 0, succeeded: 0, failed: 0 },
+      lastBatchError: null,
     });
+
+    const MAX_CONSECUTIVE_FAILURES = 5;
+    let consecutiveFailures = 0;
+    let stoppedEarly = false;
 
     for (let i = 0; i < chapters.length; i++) {
       const chapter = chapters[i];
@@ -247,8 +271,11 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
       try {
         await get().polishSingleChapter(chapter.id);
         succeeded = true;
-      } catch {
+        consecutiveFailures = 0;
+      } catch (err) {
         succeeded = false;
+        consecutiveFailures++;
+        set({ lastBatchError: (err as Error).message });
       }
 
       set((s) => ({
@@ -262,6 +289,11 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
           : null,
       }));
 
+      if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+        stoppedEarly = true;
+        break;
+      }
+
       // Small pacing delay between requests. groq.ts already retries
       // individual 429s with backoff; this just avoids triggering the
       // rate limit in the first place on very large manuscripts.
@@ -269,9 +301,14 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
     }
 
     const final = get().polishProgress;
+    const lastError = get().lastBatchError;
     set({
       isProcessing: false,
-      processingMessage: final ? `Done: ${final.succeeded}/${final.total} polished, ${final.failed} failed` : '',
+      processingMessage: stoppedEarly
+        ? `Stopped after ${MAX_CONSECUTIVE_FAILURES} failures in a row — likely a systemic issue, not per-chapter. Last error: ${lastError}`
+        : final
+          ? `Done: ${final.succeeded}/${final.total} polished, ${final.failed} failed`
+          : '',
     });
   },
 

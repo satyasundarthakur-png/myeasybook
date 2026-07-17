@@ -13,7 +13,7 @@ import { useBookStore } from '../store/useBookStore';
 import type { Chapter } from '../types/book';
 
 export default function OcrFixStage() {
-  const { chapters, groups, fixAllChaptersOcr, fixSingleChapterOcr, updateChapterOcrFixedText, setStage, groqApiKey, ocrFixProgress } =
+  const { chapters, groups, fixAllChaptersOcr, fixSingleChapterOcr, updateChapterOcrFixedText, setStage, groqApiKey, ocrFixProgress, lastBatchError } =
     useBookStore();
   const [activeId, setActiveId] = useState(chapters[0]?.id ?? null);
   const active = chapters.find((c) => c.id === activeId) ?? chapters[0];
@@ -145,6 +145,11 @@ export default function OcrFixStage() {
             </div>
           )}
           {error && <p className="mb-4 text-sm text-rust shrink-0">{error}</p>}
+          {!error && lastBatchError && (
+            <p className="mb-4 text-sm text-rust shrink-0">
+              "Fix all" ran into a problem: {lastBatchError}
+            </p>
+          )}
 
           {active && (
             <div className="flex-1 flex flex-col min-h-0">
