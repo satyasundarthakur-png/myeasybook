@@ -23,6 +23,7 @@ export default function ExportStage() {
     try {
       const blob = await buildEpub(book);
       saveAs(blob, `${filename}.epub`);
+      book.addExportHistoryEntry({ filename: `${filename}.epub`, format: 'epub', sizeBytes: blob.size, blob });
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -36,6 +37,7 @@ export default function ExportStage() {
     try {
       const blob = await buildDocx(book);
       saveAs(blob, `${filename}.docx`);
+      book.addExportHistoryEntry({ filename: `${filename}.docx`, format: 'docx', sizeBytes: blob.size, blob });
     } catch (e) {
       setError((e as Error).message);
     } finally {
@@ -58,6 +60,12 @@ export default function ExportStage() {
       win.document.close();
       win.focus();
       setTimeout(() => win.print(), 400);
+      book.addExportHistoryEntry({
+        filename: `${filename}.pdf`,
+        format: 'pdf',
+        sizeBytes: new Blob([html]).size,
+        blob: null,
+      });
     } catch (e) {
       win.close();
       setError((e as Error).message);

@@ -65,6 +65,23 @@ export interface CoverConfig {
   backCoverImage: string | null;
 }
 
+/**
+ * A record of a completed export, kept in memory only (not persisted
+ * across page reloads) so the last few can be re-downloaded without
+ * regenerating. EPUB/DOCX keep the actual generated Blob for a byte-
+ * identical re-download; print-to-PDF has no discrete file object (it
+ * opens a browser print view), so it re-opens that view from current
+ * book state instead.
+ */
+export interface ExportHistoryEntry {
+  id: string;
+  filename: string;
+  format: 'epub' | 'docx' | 'pdf';
+  sizeBytes: number;
+  timestamp: number;
+  blob: Blob | null;
+}
+
 export interface BookMeta {
   title: string;
   author: string;
@@ -92,4 +109,5 @@ export interface BookState {
   indexProgress: { total: number; processed: number } | null;
   lastBatchError: string | null;
   lastCleanupNote: string | null;
+  exportHistory: ExportHistoryEntry[];
 }

@@ -8,6 +8,7 @@ import FrontMatterStage from './components/FrontMatterStage';
 import IndexStage from './components/IndexStage';
 import CoverStage from './components/CoverStage';
 import ExportStage from './components/ExportStage';
+import ExportHistoryPanel from './components/ExportHistoryPanel';
 import { useBookStore } from './store/useBookStore';
 
 export default function App() {
@@ -29,6 +30,7 @@ export default function App() {
           {stage === 'export' && <ExportStage />}
         </main>
       </div>
+      <ExportHistoryPanel />
     </div>
   );
 }

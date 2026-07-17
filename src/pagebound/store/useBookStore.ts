@@ -1,13 +1,13 @@
 import { create } from 'zustand';
 import type { AiProviderId } from '../lib/aiTypes';
-import type { BookState, Stage } from '../types/book';
+import type { BookState, Stage, ExportHistoryEntry } from '../types/book';
 import { parseUploadedFile } from '../lib/docParser';
 import { detectChapters } from '../lib/chapterDetector';
 import { cleanManuscriptText } from '../lib/textCleanup';
 import { groupChapters } from '../lib/chapterGrouper';
 import { extractIndexEntries, generateIntroduction, polishChapterText } from '../lib/aiWriter';
 import { fixChapterOcrErrors } from '../lib/ocrFix';
-import { sleep } from '../lib/shared';
+import { sleep, makeId } from '../lib/shared';
 
 interface BookActions {
   setStage: (s: Stage) => void;
@@ -25,6 +25,7 @@ interface BookActions {
   updateChapterOcrFixedText: (id: string, text: string) => void;
   generateIntro: () => Promise<void>;
   buildIndex: () => Promise<void>;
+  addExportHistoryEntry: (entry: Omit<ExportHistoryEntry, 'id' | 'timestamp'>) => void;
   reset: () => void;
 }
 
@@ -113,6 +114,7 @@ const initialState: BookState = {
   indexProgress: null,
   lastCleanupNote: null,
   lastBatchError: null,
+  exportHistory: [],
 };
 
 export const useBookStore = create<BookState & BookActions>((set, get) => ({
@@ -414,6 +416,16 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
       throw err;
     }
   },
+
+  /** Records a completed export, keeping only the 3 most recent — older
+   * ones are dropped automatically rather than accumulating indefinitely. */
+  addExportHistoryEntry: (entry) =>
+    set((s) => ({
+      exportHistory: [
+        { ...entry, id: makeId(), timestamp: Date.now() },
+        ...s.exportHistory,
+      ].slice(0, 3),
+    })),
 
   reset: () =>
     set({
