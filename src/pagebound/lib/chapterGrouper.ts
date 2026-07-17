@@ -57,14 +57,27 @@ export function groupChapters(chapters: Chapter[]): ChapterGroup[] {
       if (!groupsByNumber.has(num)) groupsByNumber.set(num, []);
       groupsByNumber.get(num)!.push(c.id);
     });
-    return Array.from(groupsByNumber.entries())
-      .sort((a, b) => a[0] - b[0])
-      .map(([num, ids]) => ({
-        id: makeId(),
-        number: num,
-        title: `Chapter ${num}`,
-        chapterIds: ids,
-      }));
+
+    // Guard: if every title carries a distinct number (e.g. the generic
+    // "Chapter 1", "Chapter 2", ... "Chapter N" placeholders the blank-gap
+    // splitter assigns to every single detected item), this "pattern" is
+    // really just sequential enumeration, not a genuine repeating
+    // "Chapter N, Verse M" convention — grouping by it produces one group
+    // per item, which is no improvement at all. Only trust this strategy
+    // if it actually reduces the list by a meaningful factor.
+    const groupCount = groupsByNumber.size;
+    const meaningfulReduction = groupCount <= chapters.length / 2;
+
+    if (meaningfulReduction) {
+      return Array.from(groupsByNumber.entries())
+        .sort((a, b) => a[0] - b[0])
+        .map(([num, ids]) => ({
+          id: makeId(),
+          number: num,
+          title: `Chapter ${num}`,
+          chapterIds: ids,
+        }));
+    }
   }
 
   // No natural structure found — synthesize equal-sized sections so the
