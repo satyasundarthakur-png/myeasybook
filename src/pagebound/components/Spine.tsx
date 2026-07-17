@@ -1,4 +1,4 @@
-import { History, Trash2 } from 'lucide-react';
+import { Trash2 } from 'lucide-react';
 import type { Stage } from '../types/book';
 import { useBookStore } from '../store/useBookStore';
 import AiSettingsPanel from './AiSettingsPanel';
@@ -95,14 +95,6 @@ export default function Spine() {
       {/* Bottom panel: AI settings + project management actions */}
       <div className="space-y-2 border-t border-slate-800 pt-4">
         <AiSettingsPanel />
-
-        <button
-          onClick={() => alert('Opening version history…')}
-          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800/50 rounded-md transition-all group font-mono"
-        >
-          <History className="h-4 w-4 text-slate-500 group-hover:text-amber-500 transition-colors" />
-          <span>VERSION HISTORY</span>
-        </button>
 
         <button
           onClick={handleReset}

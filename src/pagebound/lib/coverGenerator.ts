@@ -82,6 +82,49 @@ export function generateCoverSVG(config: CoverConfig): string {
 }
 
 /**
+ * Generates the back cover: same palette/canvas as the front (1600x2400,
+ * 2:3 ratio) so both sides of the export are visually one cohesive jacket,
+ * with the blurb text as the focal content and a small colophon mark
+ * standing in for a barcode block, like a real back cover's imprint area.
+ */
+export function generateBackCoverSVG(config: CoverConfig): string {
+  const p = PALETTES[config.palette];
+  const W = 1600;
+  const H = 2400;
+  const margin = 180;
+  const blurbLines = config.backCoverText ? wrapLines(config.backCoverText, 42) : [];
+  const lineHeight = 54;
+  const maxLines = Math.floor((H - margin * 2 - 260) / lineHeight);
+  const shownLines = blurbLines.slice(0, maxLines);
+  const blurbStartY = H * 0.5 - (shownLines.length * lineHeight) / 2;
+
+  const blurbTspans = shownLines
+    .map((line, i) => `<tspan x="${margin}" y="${blurbStartY + i * lineHeight}">${escapeXml(line)}</tspan>`)
+    .join('');
+
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}">
+  <defs>
+    <linearGradient id="bgGradBack" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${p.bg2}" />
+      <stop offset="100%" stop-color="${p.bg}" />
+    </linearGradient>
+  </defs>
+  <rect width="${W}" height="${H}" fill="url(#bgGradBack)" />
+
+  <text text-anchor="start" font-family="'Fraunces', serif" font-size="38" fill="${p.fg}" opacity="0.95">${blurbTspans}</text>
+
+  <line x1="${margin}" y1="${H - 260}" x2="${W - margin}" y2="${H - 260}" stroke="${p.accent}" stroke-width="2" opacity="0.6" />
+
+  <text x="${margin}" y="${H - 190}" font-family="'Inter', sans-serif" font-weight="600" font-size="30" letter-spacing="2" fill="${p.accent}">${escapeXml(config.author.toUpperCase())}</text>
+
+  <text x="${margin}" y="${H - 140}" font-family="'IBM Plex Mono', monospace" font-size="22" letter-spacing="4" fill="${p.fg}" opacity="0.6">${escapeXml(config.title.toUpperCase())}</text>
+
+  <rect x="${W - margin - 200}" y="${H - 210}" width="200" height="80" fill="${p.fg}" opacity="0.08" />
+  <text x="${W - margin - 100}" y="${H - 165}" text-anchor="middle" font-family="'IBM Plex Mono', monospace" font-size="16" letter-spacing="2" fill="${p.fg}" opacity="0.5">PAGEBOUND</text>
+</svg>`;
+}
+
+/**
  * Rasterizes the generated cover as JPEG rather than PNG. The grain-texture
  * filter in the SVG produces high-frequency per-pixel noise once rasterized
  * — noise that PNG's lossless compression handles terribly (measured: a
@@ -130,5 +173,13 @@ export function mimeTypeFromDataUrl(dataUrl: string): string {
 export async function resolveCoverImageDataUrl(cover: CoverConfig): Promise<string> {
   if (cover.customImage) return cover.customImage;
   const svg = generateCoverSVG(cover);
+  return svgToJpegDataUrl(svg);
+}
+
+/** Same resolution logic as the front cover: author's uploaded image takes
+ * priority, otherwise the procedurally generated back cover. */
+export async function resolveBackCoverImageDataUrl(cover: CoverConfig): Promise<string> {
+  if (cover.backCoverImage) return cover.backCoverImage;
+  const svg = generateBackCoverSVG(cover);
   return svgToJpegDataUrl(svg);
 }

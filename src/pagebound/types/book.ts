@@ -57,6 +57,12 @@ export interface CoverConfig {
   /** Data URL of an author-uploaded cover image. When set, this replaces
    * the procedurally generated SVG cover in every export. */
   customImage: string | null;
+  /** Back-cover blurb/synopsis text. Rendered on a procedurally generated
+   * back cover unless backCoverImage is set. */
+  backCoverText: string;
+  /** Author-uploaded back-cover image, taking priority over the generated
+   * one — same pattern as customImage for the front cover. */
+  backCoverImage: string | null;
 }
 
 export interface BookMeta {

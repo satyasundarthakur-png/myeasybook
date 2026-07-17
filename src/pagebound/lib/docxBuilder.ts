@@ -9,7 +9,7 @@ import {
   ImageRun,
 } from 'docx';
 import type { BookState } from '../types/book';
-import { resolveCoverImageDataUrl, mimeTypeFromDataUrl } from './coverGenerator';
+import { resolveCoverImageDataUrl, resolveBackCoverImageDataUrl, mimeTypeFromDataUrl } from './coverGenerator';
 import { buildExportUnits } from './exportUnits';
 
 function bodyParagraphs(text: string): Paragraph[] {
@@ -41,31 +41,40 @@ function docxImageType(mime: string): 'png' | 'jpg' | 'gif' | 'bmp' {
   // an uploaded webp is a known edge case worth revisiting if it comes up)
 }
 
-export async function buildDocx(book: BookState): Promise<Blob> {
-  const children: Paragraph[] = [];
+// A dedicated 6x9in trade-book page size (the cover images are generated at
+// a matching 2:3 ratio) with zero margins, so the cover image fills the
+// entire page edge-to-edge instead of appearing as a small picture centered
+// on a default 8.5x11in Letter page with 1in margins — confirmed directly
+// as the cause of "cover doesn't fill the page": a 400x600px image on a
+// 6.5x9in content area (Letter minus margins) left most of the page blank.
+const COVER_PAGE = {
+  size: { width: 8640, height: 12960 }, // 6in x 9in, in twips (1440/in)
+  margin: { top: 0, right: 0, bottom: 0, left: 0 },
+};
+const COVER_IMAGE_PX = { width: 576, height: 864 }; // 6x9in at 96dpi, filling COVER_PAGE exactly
 
-  // Cover page — embeds the actual designed/uploaded cover image, not just
-  // plain text. Previously this section only wrote the title and author as
-  // text, silently dropping whatever cover the author designed or uploaded.
-  const coverDataUrl = await resolveCoverImageDataUrl(book.cover);
-  children.push(
+async function buildCoverPageChildren(dataUrl: string): Promise<Paragraph[]> {
+  return [
     new Paragraph({
       children: [
         new ImageRun({
-          type: docxImageType(mimeTypeFromDataUrl(coverDataUrl)),
-          data: dataUrlToUint8Array(coverDataUrl),
-          transformation: { width: 400, height: 600 },
+          type: docxImageType(mimeTypeFromDataUrl(dataUrl)),
+          data: dataUrlToUint8Array(dataUrl),
+          transformation: COVER_IMAGE_PX,
         }),
       ],
       alignment: AlignmentType.CENTER,
-      spacing: { before: 400 },
+      spacing: { before: 0, after: 0 },
     }),
-    new Paragraph({ children: [new PageBreak()] })
-  );
+  ];
+}
+
+export async function buildDocx(book: BookState): Promise<Blob> {
+  const mainChildren: Paragraph[] = [];
 
   // Introduction
   if (book.introduction) {
-    children.push(
+    mainChildren.push(
       new Paragraph({ text: 'Introduction', heading: HeadingLevel.HEADING_1 }),
       ...bodyParagraphs(book.introduction),
       new Paragraph({ children: [new PageBreak()] })
@@ -74,17 +83,15 @@ export async function buildDocx(book: BookState): Promise<Blob> {
 
   // Table of contents (static, since Word's dynamic TOC needs field codes)
   const units = buildExportUnits(book);
-  children.push(new Paragraph({ text: 'Table of Contents', heading: HeadingLevel.HEADING_1 }));
+  mainChildren.push(new Paragraph({ text: 'Table of Contents', heading: HeadingLevel.HEADING_1 }));
   for (const unit of units) {
-    children.push(
-      new Paragraph({ text: `${unit.number}. ${unit.title}` })
-    );
+    mainChildren.push(new Paragraph({ text: `${unit.number}. ${unit.title}` }));
   }
-  children.push(new Paragraph({ children: [new PageBreak()] }));
+  mainChildren.push(new Paragraph({ children: [new PageBreak()] }));
 
   // Chapters
   for (const unit of units) {
-    children.push(
+    mainChildren.push(
       new Paragraph({ text: unit.title, heading: HeadingLevel.HEADING_1 }),
       ...bodyParagraphs(unit.body),
       new Paragraph({ children: [new PageBreak()] })
@@ -93,9 +100,9 @@ export async function buildDocx(book: BookState): Promise<Blob> {
 
   // Index
   if (book.indexEntries.length > 0) {
-    children.push(new Paragraph({ text: 'Index', heading: HeadingLevel.HEADING_1 }));
+    mainChildren.push(new Paragraph({ text: 'Index', heading: HeadingLevel.HEADING_1 }));
     for (const entry of book.indexEntries) {
-      children.push(
+      mainChildren.push(
         new Paragraph({
           children: [
             new TextRun({ text: entry.term, bold: true }),
@@ -106,8 +113,15 @@ export async function buildDocx(book: BookState): Promise<Blob> {
     }
   }
 
+  const frontCoverDataUrl = await resolveCoverImageDataUrl(book.cover);
+  const backCoverDataUrl = await resolveBackCoverImageDataUrl(book.cover);
+
   const doc = new Document({
-    sections: [{ properties: {}, children }],
+    sections: [
+      { properties: { page: COVER_PAGE }, children: await buildCoverPageChildren(frontCoverDataUrl) },
+      { properties: {}, children: mainChildren },
+      { properties: { page: COVER_PAGE }, children: await buildCoverPageChildren(backCoverDataUrl) },
+    ],
   });
 
   return Packer.toBlob(doc);

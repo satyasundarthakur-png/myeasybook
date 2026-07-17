@@ -100,7 +100,7 @@ const initialState: BookState = {
   groups: [],
   introduction: null,
   indexEntries: [],
-  cover: { title: '', subtitle: '', author: '', palette: 'leather', layout: 'classic', customImage: null },
+  cover: { title: '', subtitle: '', author: '', palette: 'leather', layout: 'classic', customImage: null, backCoverText: '', backCoverImage: null },
   aiProvider: initialProvider,
   groqApiKey: initialGroq.apiKey,
   groqModel: initialGroq.model,

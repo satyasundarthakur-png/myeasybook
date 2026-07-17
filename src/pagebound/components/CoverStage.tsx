@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react';
 import { ArrowRight, Upload, X } from 'lucide-react';
 import { useBookStore } from '../store/useBookStore';
-import { generateCoverSVG } from '../lib/coverGenerator';
+import { generateCoverSVG, generateBackCoverSVG } from '../lib/coverGenerator';
 import type { CoverConfig } from '../types/book';
 
 const PALETTES: CoverConfig['palette'][] = ['leather', 'brass', 'moss', 'ink'];
@@ -10,11 +10,14 @@ const MAX_IMAGE_BYTES = 8 * 1024 * 1024; // 8MB — generous for a cover, small 
 
 export default function CoverStage() {
   const { cover, setCover, setStage } = useBookStore();
-  const svg = generateCoverSVG(cover);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [side, setSide] = useState<'front' | 'back'>('front');
+  const frontSvg = generateCoverSVG(cover);
+  const backSvg = generateBackCoverSVG(cover);
+  const frontFileInputRef = useRef<HTMLInputElement>(null);
+  const backFileInputRef = useRef<HTMLInputElement>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
 
-  const handleImageUpload = (file: File | undefined) => {
+  const handleImageUpload = (file: File | undefined, target: 'customImage' | 'backCoverImage') => {
     if (!file) return;
     setUploadError(null);
     if (!file.type.startsWith('image/')) {
@@ -26,7 +29,7 @@ export default function CoverStage() {
       return;
     }
     const reader = new FileReader();
-    reader.onload = () => setCover({ customImage: reader.result as string });
+    reader.onload = () => setCover({ [target]: reader.result as string });
     reader.onerror = () => setUploadError('Could not read that image file.');
     reader.readAsDataURL(file);
   };
@@ -35,90 +38,152 @@ export default function CoverStage() {
     <div className="h-full overflow-y-auto max-w-4xl mx-auto py-12 px-6 grid grid-cols-[280px_1fr] gap-10">
       <div>
         <p className="font-mono text-[11px] tracking-[0.2em] text-crimson uppercase font-semibold mb-3">No. 06 — Jacket Design</p>
-        <h1 className="font-display font-bold text-3xl text-ink mb-6">Cover</h1>
+        <h1 className="font-display font-bold text-3xl text-ink mb-4">Cover</h1>
 
-        <label className="block font-mono text-xs text-ink/40 mb-2 tracking-wide">YOUR OWN COVER ART</label>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={(e) => handleImageUpload(e.target.files?.[0])}
-        />
-        {cover.customImage ? (
+        <div className="flex gap-2 mb-6">
           <button
-            onClick={() => setCover({ customImage: null })}
-            className="w-full flex items-center justify-center gap-2 border border-paper-dim text-ink/60 hover:text-rust hover:border-rust py-2 text-xs font-body mb-2"
+            onClick={() => setSide('front')}
+            className={`flex-1 py-2 text-xs font-body border ${side === 'front' ? 'border-crimson text-crimson' : 'border-paper-dim text-ink/50'}`}
           >
-            <X size={13} /> Remove uploaded image
+            Front Cover
           </button>
+          <button
+            onClick={() => setSide('back')}
+            className={`flex-1 py-2 text-xs font-body border ${side === 'back' ? 'border-crimson text-crimson' : 'border-paper-dim text-ink/50'}`}
+          >
+            Back Cover
+          </button>
+        </div>
+
+        {side === 'front' ? (
+          <>
+            <label className="block font-mono text-xs text-ink/40 mb-2 tracking-wide">YOUR OWN COVER ART</label>
+            <input
+              ref={frontFileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => handleImageUpload(e.target.files?.[0], 'customImage')}
+            />
+            {cover.customImage ? (
+              <button
+                onClick={() => setCover({ customImage: null })}
+                className="w-full flex items-center justify-center gap-2 border border-paper-dim text-ink/60 hover:text-rust hover:border-rust py-2 text-xs font-body mb-2"
+              >
+                <X size={13} /> Remove uploaded image
+              </button>
+            ) : (
+              <button
+                onClick={() => frontFileInputRef.current?.click()}
+                className="w-full flex items-center justify-center gap-2 border border-dashed border-paper-dim text-ink/60 hover:border-crimson hover:text-crimson py-3 text-xs font-body mb-2"
+              >
+                <Upload size={14} /> Upload cover image
+              </button>
+            )}
+            {uploadError && <p className="text-xs text-rust mb-2">{uploadError}</p>}
+            <p className="font-mono text-[10px] text-ink/35 mb-6 leading-relaxed">
+              {cover.customImage
+                ? 'Using your uploaded image. Remove it to go back to the designed cover below.'
+                : 'JPG, PNG, or WebP, ideally a 2:3 portrait ratio (e.g. 1600×2400px). If you skip this, the designed cover below is used instead.'}
+            </p>
+
+            <fieldset disabled={Boolean(cover.customImage)} className={cover.customImage ? 'opacity-40' : ''}>
+              <label className="block font-mono text-xs text-ink/40 mb-1 tracking-wide">TITLE</label>
+              <input
+                value={cover.title}
+                onChange={(e) => setCover({ title: e.target.value })}
+                className="w-full bg-paper border border-paper-dim px-3 py-2 text-ink mb-4"
+              />
+
+              <label className="block font-mono text-xs text-ink/40 mb-1 tracking-wide">SUBTITLE (OPTIONAL)</label>
+              <input
+                value={cover.subtitle}
+                onChange={(e) => setCover({ subtitle: e.target.value })}
+                className="w-full bg-paper border border-paper-dim px-3 py-2 text-ink mb-4"
+              />
+
+              <label className="block font-mono text-xs text-ink/40 mb-1 tracking-wide">AUTHOR</label>
+              <input
+                value={cover.author}
+                onChange={(e) => setCover({ author: e.target.value })}
+                className="w-full bg-paper border border-paper-dim px-3 py-2 text-ink mb-4"
+              />
+
+              <label className="block font-mono text-xs text-ink/40 mb-2 tracking-wide">PALETTE</label>
+              <div className="flex gap-2 mb-4">
+                {PALETTES.map((p) => (
+                  <button
+                    key={p}
+                    onClick={() => setCover({ palette: p })}
+                    className={`flex-1 py-2 text-xs font-body capitalize border ${
+                      cover.palette === p ? 'border-crimson text-crimson' : 'border-paper-dim text-ink/50'
+                    }`}
+                  >
+                    {p}
+                  </button>
+                ))}
+              </div>
+
+              <label className="block font-mono text-xs text-ink/40 mb-2 tracking-wide">LAYOUT</label>
+              <div className="flex gap-2 mb-6">
+                {LAYOUTS.map((l) => (
+                  <button
+                    key={l}
+                    onClick={() => setCover({ layout: l })}
+                    className={`flex-1 py-2 text-xs font-body capitalize border ${
+                      cover.layout === l ? 'border-crimson text-crimson' : 'border-paper-dim text-ink/50'
+                    }`}
+                  >
+                    {l}
+                  </button>
+                ))}
+              </div>
+            </fieldset>
+          </>
         ) : (
-          <button
-            onClick={() => fileInputRef.current?.click()}
-            className="w-full flex items-center justify-center gap-2 border border-dashed border-paper-dim text-ink/60 hover:border-crimson hover:text-crimson py-3 text-xs font-body mb-2"
-          >
-            <Upload size={14} /> Upload cover image
-          </button>
+          <>
+            <label className="block font-mono text-xs text-ink/40 mb-2 tracking-wide">YOUR OWN BACK COVER ART</label>
+            <input
+              ref={backFileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => handleImageUpload(e.target.files?.[0], 'backCoverImage')}
+            />
+            {cover.backCoverImage ? (
+              <button
+                onClick={() => setCover({ backCoverImage: null })}
+                className="w-full flex items-center justify-center gap-2 border border-paper-dim text-ink/60 hover:text-rust hover:border-rust py-2 text-xs font-body mb-2"
+              >
+                <X size={13} /> Remove uploaded image
+              </button>
+            ) : (
+              <button
+                onClick={() => backFileInputRef.current?.click()}
+                className="w-full flex items-center justify-center gap-2 border border-dashed border-paper-dim text-ink/60 hover:border-crimson hover:text-crimson py-3 text-xs font-body mb-2"
+              >
+                <Upload size={14} /> Upload back cover image
+              </button>
+            )}
+            {uploadError && <p className="text-xs text-rust mb-2">{uploadError}</p>}
+            <p className="font-mono text-[10px] text-ink/35 mb-6 leading-relaxed">
+              {cover.backCoverImage
+                ? 'Using your uploaded image. Remove it to go back to the designed back cover below.'
+                : 'Uses the same palette as the front. Add a blurb below, or upload your own back-cover image instead.'}
+            </p>
+
+            <fieldset disabled={Boolean(cover.backCoverImage)} className={cover.backCoverImage ? 'opacity-40' : ''}>
+              <label className="block font-mono text-xs text-ink/40 mb-1 tracking-wide">BLURB / SYNOPSIS</label>
+              <textarea
+                value={cover.backCoverText}
+                onChange={(e) => setCover({ backCoverText: e.target.value })}
+                rows={10}
+                placeholder="A short synopsis or blurb to appear on the back cover…"
+                className="w-full bg-paper border border-paper-dim px-3 py-2 text-ink mb-4 resize-none font-display text-sm leading-relaxed"
+              />
+            </fieldset>
+          </>
         )}
-        {uploadError && <p className="text-xs text-rust mb-2">{uploadError}</p>}
-        <p className="font-mono text-[10px] text-ink/35 mb-6 leading-relaxed">
-          {cover.customImage
-            ? 'Using your uploaded image. Remove it to go back to the designed cover below.'
-            : 'JPG, PNG, or WebP, ideally a 2:3 portrait ratio (e.g. 1600×2400px). If you skip this, the designed cover below is used instead.'}
-        </p>
-
-        <fieldset disabled={Boolean(cover.customImage)} className={cover.customImage ? 'opacity-40' : ''}>
-          <label className="block font-mono text-xs text-ink/40 mb-1 tracking-wide">TITLE</label>
-          <input
-            value={cover.title}
-            onChange={(e) => setCover({ title: e.target.value })}
-            className="w-full bg-paper border border-paper-dim px-3 py-2 text-ink mb-4"
-          />
-
-          <label className="block font-mono text-xs text-ink/40 mb-1 tracking-wide">SUBTITLE (OPTIONAL)</label>
-          <input
-            value={cover.subtitle}
-            onChange={(e) => setCover({ subtitle: e.target.value })}
-            className="w-full bg-paper border border-paper-dim px-3 py-2 text-ink mb-4"
-          />
-
-          <label className="block font-mono text-xs text-ink/40 mb-1 tracking-wide">AUTHOR</label>
-          <input
-            value={cover.author}
-            onChange={(e) => setCover({ author: e.target.value })}
-            className="w-full bg-paper border border-paper-dim px-3 py-2 text-ink mb-4"
-          />
-
-          <label className="block font-mono text-xs text-ink/40 mb-2 tracking-wide">PALETTE</label>
-          <div className="flex gap-2 mb-4">
-            {PALETTES.map((p) => (
-              <button
-                key={p}
-                onClick={() => setCover({ palette: p })}
-                className={`flex-1 py-2 text-xs font-body capitalize border ${
-                  cover.palette === p ? 'border-crimson text-crimson' : 'border-paper-dim text-ink/50'
-                }`}
-              >
-                {p}
-              </button>
-            ))}
-          </div>
-
-          <label className="block font-mono text-xs text-ink/40 mb-2 tracking-wide">LAYOUT</label>
-          <div className="flex gap-2 mb-6">
-            {LAYOUTS.map((l) => (
-              <button
-                key={l}
-                onClick={() => setCover({ layout: l })}
-                className={`flex-1 py-2 text-xs font-body capitalize border ${
-                  cover.layout === l ? 'border-crimson text-crimson' : 'border-paper-dim text-ink/50'
-                }`}
-              >
-                {l}
-              </button>
-            ))}
-          </div>
-        </fieldset>
 
         <button
           onClick={() => setStage('export')}
@@ -129,16 +194,29 @@ export default function CoverStage() {
       </div>
 
       <div className="flex items-center justify-center">
-        {cover.customImage ? (
+        {side === 'front' ? (
+          cover.customImage ? (
+            <img
+              src={cover.customImage}
+              alt="Uploaded cover"
+              className="w-[320px] shadow-2xl overflow-hidden border border-paper-dim object-cover aspect-[2/3]"
+            />
+          ) : (
+            <div
+              className="w-[320px] shadow-2xl overflow-hidden border border-paper-dim"
+              dangerouslySetInnerHTML={{ __html: frontSvg }}
+            />
+          )
+        ) : cover.backCoverImage ? (
           <img
-            src={cover.customImage}
-            alt="Uploaded cover"
+            src={cover.backCoverImage}
+            alt="Uploaded back cover"
             className="w-[320px] shadow-2xl overflow-hidden border border-paper-dim object-cover aspect-[2/3]"
           />
         ) : (
           <div
             className="w-[320px] shadow-2xl overflow-hidden border border-paper-dim"
-            dangerouslySetInnerHTML={{ __html: svg }}
+            dangerouslySetInnerHTML={{ __html: backSvg }}
           />
         )}
       </div>

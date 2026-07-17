@@ -1,6 +1,6 @@
 import JSZip from 'jszip';
 import type { BookState } from '../types/book';
-import { resolveCoverImageDataUrl, mimeTypeFromDataUrl } from './coverGenerator';
+import { resolveCoverImageDataUrl, resolveBackCoverImageDataUrl, mimeTypeFromDataUrl } from './coverGenerator';
 import { escapeXml } from './shared';
 import { buildExportUnits } from './exportUnits';
 
@@ -139,6 +139,27 @@ export async function buildEpub(book: BookState): Promise<Blob> {
     spineItems.push(`<itemref idref="index"/>`);
     navItems.push(`<li><a href="index.xhtml">Index</a></li>`);
   }
+
+  // Back cover
+  const backCoverDataUrl = await resolveBackCoverImageDataUrl(book.cover);
+  const backCoverMime = mimeTypeFromDataUrl(backCoverDataUrl);
+  const backCoverExt = extensionForMime(backCoverMime);
+  const backCoverFilename = `back-cover.${backCoverExt}`;
+  oebps.file(backCoverFilename, dataUrlToUint8Array(backCoverDataUrl), { base64: false, binary: true });
+  oebps.file(
+    'back-cover.xhtml',
+    `<?xml version="1.0" encoding="UTF-8"?>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head><title>Back Cover</title><style>body{margin:0;padding:0;} img{width:100%;height:100%;object-fit:cover;}</style></head>
+<body><img src="${backCoverFilename}" alt="Back cover"/></body>
+</html>`
+  );
+  manifestItems.push(
+    `<item id="back-cover-img" href="${backCoverFilename}" media-type="${backCoverMime}"/>`,
+    `<item id="back-cover" href="back-cover.xhtml" media-type="application/xhtml+xml"/>`
+  );
+  spineItems.push(`<itemref idref="back-cover" linear="no"/>`);
+  navItems.push(`<li><a href="back-cover.xhtml">Back Cover</a></li>`);
 
   // Nav (EPUB3 TOC)
   oebps.file(
