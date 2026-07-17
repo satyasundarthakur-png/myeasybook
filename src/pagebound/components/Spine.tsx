@@ -40,7 +40,7 @@ export default function Spine() {
   };
 
   return (
-    <aside className="w-64 shrink-0 bg-sidebar text-slate-300 h-full flex flex-col justify-between p-6 border-r border-slate-800">
+    <aside className="w-64 shrink-0 bg-rail text-slate-300 h-full flex flex-col justify-between p-6 border-r border-slate-800">
       <div>
         {/* Brand header */}
         <div className="mb-8">

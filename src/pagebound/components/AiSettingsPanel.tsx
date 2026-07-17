@@ -22,7 +22,7 @@ export default function AiSettingsPanel() {
       </button>
 
       {open && (
-        <div className="absolute left-0 bottom-full mb-2 w-72 bg-sidebar-raised border border-slate-800 shadow-xl p-4 z-20">
+        <div className="absolute left-0 bottom-full mb-2 w-72 bg-rail-raised border border-slate-800 shadow-xl p-4 z-20">
           <p className="font-body text-xs text-slate-400 mb-3">
             Your Groq API key stays in this browser (localStorage) — it is never sent anywhere except
             api.groq.com.
@@ -33,13 +33,13 @@ export default function AiSettingsPanel() {
             value={keyDraft}
             onChange={(e) => setKeyDraft(e.target.value)}
             placeholder="gsk_..."
-            className="w-full bg-sidebar border border-slate-800 px-2 py-1.5 text-sm text-white mb-3 focus:border-amber-500/50 focus:outline-none"
+            className="w-full bg-rail border border-slate-800 px-2 py-1.5 text-sm text-white mb-3 focus:border-amber-500/50 focus:outline-none"
           />
           <label className="block text-xs font-mono text-slate-500 mb-1 tracking-wide">MODEL</label>
           <select
             value={modelDraft}
             onChange={(e) => setModelDraft(e.target.value)}
-            className="w-full bg-sidebar border border-slate-800 px-2 py-1.5 text-sm text-white mb-3 focus:border-amber-500/50 focus:outline-none"
+            className="w-full bg-rail border border-slate-800 px-2 py-1.5 text-sm text-white mb-3 focus:border-amber-500/50 focus:outline-none"
           >
             {MODELS.map((m) => (
               <option key={m} value={m}>
