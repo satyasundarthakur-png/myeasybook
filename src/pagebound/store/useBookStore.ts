@@ -162,13 +162,27 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
 
       set({ processingMessage: 'Detecting chapters…' });
       const config = getActiveAiConfig(get());
-      const { chapters } = await detectChapters(cleanedText, config.apiKey ? config : null, parsed.html);
+      const { chapters: detected } = await detectChapters(cleanedText, config.apiKey ? config : null, parsed.html);
+
+      // A source manuscript that already has its own "Introduction" heading
+      // (e.g. a book re-uploaded after a previous Pagebound export) was
+      // showing up twice: once correctly as front matter, once again as a
+      // numbered chapter — confirmed in a real re-uploaded file. Route it
+      // into the dedicated introduction field instead of leaving both.
+      const introIdx = detected.findIndex((c) => /^introduction$/i.test(c.title.trim()));
+      const extractedIntro = introIdx >= 0 ? detected[introIdx].originalText : null;
+      const chapters =
+        introIdx >= 0
+          ? detected.filter((_, i) => i !== introIdx).map((c, i) => ({ ...c, number: i + 1 }))
+          : detected;
+
       const groups = groupChapters(chapters);
 
       const guessedTitle = file.name.replace(/\.(docx|pdf|txt)$/i, '').replace(/[_-]+/g, ' ');
       set((s) => ({
         chapters,
         groups,
+        introduction: s.introduction || extractedIntro,
         meta: { ...s.meta, title: s.meta.title || guessedTitle },
         cover: { ...s.cover, title: s.cover.title || guessedTitle },
         stage: 'chapters',
