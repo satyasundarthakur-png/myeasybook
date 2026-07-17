@@ -1,7 +1,7 @@
 import JSZip from 'jszip';
 import type { BookState } from '../types/book';
 import { resolveCoverImageDataUrl, resolveBackCoverImageDataUrl, mimeTypeFromDataUrl } from './coverGenerator';
-import { escapeXml } from './shared';
+import { escapeXml, dataUrlToUint8Array } from './shared';
 import { buildExportUnits } from './exportUnits';
 
 function paragraphsToXhtml(text: string): string {
@@ -9,14 +9,6 @@ function paragraphsToXhtml(text: string): string {
     .split(/\n\n+/)
     .map((p) => `<p>${escapeXml(p.trim()).replace(/\n/g, '<br/>')}</p>`)
     .join('\n');
-}
-
-function dataUrlToUint8Array(dataUrl: string): Uint8Array {
-  const base64 = dataUrl.split(',')[1];
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes;
 }
 
 // File extension for a given mime type, for the cover file written into the EPUB.

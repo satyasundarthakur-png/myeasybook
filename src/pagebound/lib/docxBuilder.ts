@@ -7,10 +7,16 @@ import {
   PageBreak,
   TextRun,
   ImageRun,
+  Header,
+  Footer,
+  PageNumber,
+  TabStopType,
+  TabStopPosition,
 } from 'docx';
 import type { BookState } from '../types/book';
 import { resolveCoverImageDataUrl, resolveBackCoverImageDataUrl, mimeTypeFromDataUrl } from './coverGenerator';
 import { buildExportUnits } from './exportUnits';
+import { dataUrlToUint8Array } from './shared';
 
 // Traditional book typesetting: first-line indent instead of a gap between
 // paragraphs, with the first paragraph of each section un-indented — the
@@ -31,14 +37,6 @@ function bodyParagraphs(text: string): Paragraph[] {
           spacing: { after: 0 },
         })
     );
-}
-
-function dataUrlToUint8Array(dataUrl: string): Uint8Array {
-  const base64 = dataUrl.split(',')[1];
-  const binary = atob(base64);
-  const bytes = new Uint8Array(binary.length);
-  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
-  return bytes;
 }
 
 // docx's ImageRun only accepts a fixed set of type strings. Map the actual
@@ -131,10 +129,33 @@ export async function buildDocx(book: BookState): Promise<Blob> {
   const frontCoverDataUrl = await resolveCoverImageDataUrl(book.cover);
   const backCoverDataUrl = await resolveBackCoverImageDataUrl(book.cover);
 
+  // Header/footer on the main content section only — cover pages stay
+  // full-bleed with no text overlay.
+  const header = new Header({
+    children: [
+      new Paragraph({
+        tabStops: [{ type: TabStopType.RIGHT, position: TabStopPosition.MAX }],
+        children: [
+          new TextRun({ text: book.meta.title || 'Untitled', italics: true }),
+          new TextRun({ text: '\t' }),
+          new TextRun({ text: book.meta.author || '' }),
+        ],
+      }),
+    ],
+  });
+  const footer = new Footer({
+    children: [
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        children: [new TextRun({ children: [PageNumber.CURRENT] })],
+      }),
+    ],
+  });
+
   const doc = new Document({
     sections: [
       { properties: { page: COVER_PAGE }, children: await buildCoverPageChildren(frontCoverDataUrl) },
-      { properties: {}, children: mainChildren },
+      { properties: {}, headers: { default: header }, footers: { default: footer }, children: mainChildren },
       { properties: { page: COVER_PAGE }, children: await buildCoverPageChildren(backCoverDataUrl) },
     ],
   });

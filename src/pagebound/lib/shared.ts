@@ -27,3 +27,13 @@ export function escapeXml(s: string): string {
 export function resolveChapterText(chapter: { polishedText: string | null; ocrFixedText: string | null; originalText: string }): string {
   return chapter.polishedText ?? chapter.ocrFixedText ?? chapter.originalText;
 }
+
+/** Decodes a base64 data URL into raw bytes, used by both the DOCX and
+ * EPUB builders to embed images from resolveCoverImageDataUrl's output. */
+export function dataUrlToUint8Array(dataUrl: string): Uint8Array {
+  const base64 = dataUrl.split(',')[1];
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
