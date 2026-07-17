@@ -27,7 +27,7 @@ function loadGroqSettings(): { apiKey: string; model: string } {
   } catch {
     // ignore
   }
-  return { apiKey: '', model: 'llama-3.3-70b-versatile' };
+  return { apiKey: '', model: 'openai/gpt-oss-120b' };
 }
 
 function saveGroqSettings(apiKey: string, model: string) {
