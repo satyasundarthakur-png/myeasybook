@@ -17,6 +17,7 @@ export default function OcrFixStage() {
     useBookStore();
   const hasAiKey = useActiveAiKeyPresent();
   const [activeId, setActiveId] = useState(chapters[0]?.id ?? null);
+  const [justSavedId, setJustSavedId] = useState<string | null>(null);
   const active = chapters.find((c) => c.id === activeId) ?? chapters[0];
   const [error, setError] = useState<string | null>(null);
 
@@ -168,25 +169,38 @@ export default function OcrFixStage() {
                 <div className="flex flex-col min-h-0">
                   <div className="flex items-center justify-between mb-2 shrink-0">
                     <p className="font-mono text-xs text-ink/40 tracking-wide">CORRECTED (EDITABLE)</p>
-                    <button
-                      disabled={!hasAiKey || active.ocrStatus === 'fixing'}
-                      onClick={async () => {
-                        setError(null);
-                        try {
-                          await fixSingleChapterOcr(active.id);
-                        } catch (e) {
-                          setError((e as Error).message);
-                        }
-                      }}
-                      className="flex items-center gap-1 text-xs text-crimson hover:text-crimson-bright disabled:opacity-30"
-                    >
-                      <Wand2 size={12} />
-                      {active.ocrStatus === 'fixing'
-                        ? 'Fixing…'
-                        : active.ocrStatus === 'fixed'
-                          ? 'Re-fix'
-                          : 'Fix Chapter'}
-                    </button>
+                    <div className="flex items-center gap-3">
+                      <button
+                        onClick={() => {
+                          updateChapterOcrFixedText(active.id, active.ocrFixedText ?? active.originalText);
+                          setJustSavedId(active.id);
+                          setTimeout(() => setJustSavedId((id) => (id === active.id ? null : id)), 1500);
+                        }}
+                        className="flex items-center gap-1 text-xs text-moss hover:text-moss-bright"
+                      >
+                        <Check size={12} />
+                        {justSavedId === active.id ? 'Saved ✓' : 'Save & Mark Fixed'}
+                      </button>
+                      <button
+                        disabled={!hasAiKey || active.ocrStatus === 'fixing'}
+                        onClick={async () => {
+                          setError(null);
+                          try {
+                            await fixSingleChapterOcr(active.id);
+                          } catch (e) {
+                            setError((e as Error).message);
+                          }
+                        }}
+                        className="flex items-center gap-1 text-xs text-crimson hover:text-crimson-bright disabled:opacity-30"
+                      >
+                        <Wand2 size={12} />
+                        {active.ocrStatus === 'fixing'
+                          ? 'Fixing…'
+                          : active.ocrStatus === 'fixed'
+                            ? 'Re-fix'
+                            : 'Fix Chapter'}
+                      </button>
+                    </div>
                   </div>
                   <textarea
                     value={active.ocrFixedText ?? active.originalText}
