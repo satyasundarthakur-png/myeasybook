@@ -1,4 +1,5 @@
 import type { CoverConfig } from '../types/book';
+import { escapeXml } from './shared';
 
 const PALETTES: Record<CoverConfig['palette'], { bg: string; bg2: string; fg: string; accent: string }> = {
   leather: { bg: '#4E1B27', bg2: '#6B2737', fg: '#F2EEE1', accent: '#D6A75A' },
@@ -6,10 +7,6 @@ const PALETTES: Record<CoverConfig['palette'], { bg: string; bg2: string; fg: st
   moss: { bg: '#26403A', bg2: '#3F6659', fg: '#F2EEE1', accent: '#D6A75A' },
   ink: { bg: '#111110', bg2: '#1C1B19', fg: '#E8E2D0', accent: '#B8873B' },
 };
-
-function escapeXml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
 
 function wrapLines(text: string, maxCharsPerLine: number): string[] {
   const words = text.split(/\s+/);

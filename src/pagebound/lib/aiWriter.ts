@@ -1,15 +1,12 @@
 import type { Chapter, IndexEntry } from '../types/book';
 import { chunkText, groqComplete } from './groq';
+import { sleep } from './shared';
 
 const POLISH_SYSTEM = `You are a professional line editor preparing a manuscript for publication.
 Fix grammar, punctuation, and awkward phrasing. Improve flow and clarity.
 Preserve the author's voice, meaning, facts, and structure exactly.
 Do not summarize, shorten, add new content, or add commentary.
 Return only the polished text, with no preamble, no headings, and no notes.`;
-
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 export async function polishChapterText(
   text: string,

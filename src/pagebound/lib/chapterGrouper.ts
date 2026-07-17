@@ -1,8 +1,5 @@
 import type { Chapter, ChapterGroup } from '../types/book';
-
-function makeId(): string {
-  return Math.random().toString(36).slice(2, 10);
-}
+import { makeId } from './shared';
 
 // Below this count, a flat list is still perfectly navigable — don't force
 // grouping on a normal 8-30 chapter novel/nonfiction manuscript.

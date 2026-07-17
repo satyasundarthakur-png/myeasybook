@@ -1,10 +1,7 @@
 import JSZip from 'jszip';
 import type { BookState } from '../types/book';
 import { generateCoverSVG, svgToPngDataUrl } from './coverGenerator';
-
-function escapeXml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
+import { escapeXml } from './shared';
 
 function paragraphsToXhtml(text: string): string {
   return text

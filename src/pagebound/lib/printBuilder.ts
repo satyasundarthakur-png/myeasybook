@@ -1,9 +1,6 @@
 import type { BookState } from '../types/book';
 import { generateCoverSVG } from './coverGenerator';
-
-function escapeHtml(s: string): string {
-  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-}
+import { escapeXml as escapeHtml } from './shared';
 
 function paragraphs(text: string): string {
   return text

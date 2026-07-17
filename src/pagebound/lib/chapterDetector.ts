@@ -1,9 +1,6 @@
 import type { Chapter } from '../types/book';
 import { groqComplete } from './groq';
-
-function makeId(): string {
-  return Math.random().toString(36).slice(2, 10);
-}
+import { makeId } from './shared';
 
 function wordCount(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;

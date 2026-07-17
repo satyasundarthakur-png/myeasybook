@@ -1,9 +1,10 @@
 import { create } from 'zustand';
-import type { BookState, Chapter, Stage } from '../types/book';
+import type { BookState, Stage } from '../types/book';
 import { parseUploadedFile } from '../lib/docParser';
 import { detectChapters } from '../lib/chapterDetector';
 import { groupChapters } from '../lib/chapterGrouper';
 import { extractIndexEntries, generateIntroduction, polishChapterText } from '../lib/aiWriter';
+import { sleep } from '../lib/shared';
 
 interface BookActions {
   setStage: (s: Stage) => void;
@@ -37,10 +38,6 @@ function saveGroqSettings(apiKey: string, model: string) {
   } catch {
     // ignore
   }
-}
-
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 const initialGroq = loadGroqSettings();
@@ -219,8 +216,3 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
       groqModel: get().groqModel,
     }),
 }));
-
-export function chapterProgressLabel(chapters: Chapter[]): string {
-  const polished = chapters.filter((c) => c.status === 'polished').length;
-  return `${polished}/${chapters.length} polished`;
-}

@@ -1,5 +1,7 @@
 const GROQ_ENDPOINT = 'https://api.groq.com/openai/v1/chat/completions';
 
+import { sleep } from './shared';
+
 export interface GroqMessage {
   role: 'system' | 'user' | 'assistant';
   content: string;
@@ -12,10 +14,6 @@ export class GroqRequestError extends Error {
     this.status = status;
     this.name = 'GroqRequestError';
   }
-}
-
-function sleep(ms: number) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /**
