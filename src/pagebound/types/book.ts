@@ -74,4 +74,5 @@ export interface BookState {
   processingMessage: string;
   polishProgress: PolishProgress | null;
   indexProgress: { total: number; processed: number } | null;
+  lastCleanupNote: string | null;
 }

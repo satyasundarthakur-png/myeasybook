@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { BookState, Stage } from '../types/book';
 import { parseUploadedFile } from '../lib/docParser';
 import { detectChapters } from '../lib/chapterDetector';
+import { cleanManuscriptText } from '../lib/textCleanup';
 import { groupChapters } from '../lib/chapterGrouper';
 import { extractIndexEntries, generateIntroduction, polishChapterText } from '../lib/aiWriter';
 import { sleep } from '../lib/shared';
@@ -56,6 +57,7 @@ const initialState: BookState = {
   processingMessage: '',
   polishProgress: null,
   indexProgress: null,
+  lastCleanupNote: null,
 };
 
 export const useBookStore = create<BookState & BookActions>((set, get) => ({
@@ -80,9 +82,19 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
     set({ isProcessing: true, processingMessage: 'Reading uploaded file…' });
     try {
       const parsed = await parseUploadedFile(file);
+      const { text: cleanedText, report } = cleanManuscriptText(parsed.rawText);
+
+      let cleanupNote: string | null = null;
+      if (report.strippedViewerChrome || report.strippedHeaderLines > 0) {
+        const parts: string[] = [];
+        if (report.strippedViewerChrome) parts.push('removed web page navigation text');
+        if (report.strippedHeaderLines > 0) parts.push(`removed ${report.strippedHeaderLines} repeated running-header lines`);
+        cleanupNote = `Cleaned up the manuscript before detecting chapters: ${parts.join(' and ')}.`;
+      }
+
       set({ processingMessage: 'Detecting chapters…' });
       const { apiKey, model } = { apiKey: get().groqApiKey, model: get().groqModel };
-      const { chapters } = await detectChapters(parsed.rawText, apiKey ? { apiKey, model } : null);
+      const { chapters } = await detectChapters(cleanedText, apiKey ? { apiKey, model } : null);
       const groups = groupChapters(chapters);
 
       const guessedTitle = file.name.replace(/\.(docx|txt|md)$/i, '').replace(/[_-]+/g, ' ');
@@ -94,6 +106,7 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
         stage: 'chapters',
         isProcessing: false,
         processingMessage: '',
+        lastCleanupNote: cleanupNote,
       }));
     } catch (err) {
       set({ isProcessing: false, processingMessage: '' });

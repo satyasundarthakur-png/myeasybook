@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { ArrowRight, ChevronDown, ChevronRight } from 'lucide-react';
+import { ArrowRight, ChevronDown, ChevronRight, X, Sparkle } from 'lucide-react';
 import { useBookStore } from '../store/useBookStore';
 import type { Chapter } from '../types/book';
 
 export default function ChaptersStage() {
-  const { chapters, groups, setStage } = useBookStore();
+  const { chapters, groups, setStage, lastCleanupNote } = useBookStore();
   const isGrouped = groups.length > 1;
   const [expandedId, setExpandedId] = useState<string | null>(groups[0]?.id ?? null);
 
@@ -25,6 +25,18 @@ export default function ChaptersStage() {
           ? `${chapters.length} items detected, grouped into ${groups.length} chapters for easier navigation. Edit any title, then continue to polishing.`
           : 'Review the chapter breaks below. Edit any title, then continue to polishing.'}
       </p>
+      {lastCleanupNote && (
+        <div className="flex items-start gap-2 border border-moss/30 bg-moss/5 text-moss text-sm font-body px-4 py-3 mb-4">
+          <Sparkle size={14} className="shrink-0 mt-0.5" />
+          <p className="flex-1">{lastCleanupNote}</p>
+          <button
+            onClick={() => useBookStore.setState({ lastCleanupNote: null })}
+            className="text-moss/50 hover:text-moss shrink-0"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
       {isGrouped && (
         <p className="font-mono text-xs text-brass-dim mb-6">
           Large manuscript detected — showing grouped view. Click a group to expand it.
