@@ -61,8 +61,8 @@ export default function ExportStage() {
 
   return (
     <div className="h-full overflow-y-auto max-w-2xl mx-auto py-12 px-6">
-      <p className="font-mono text-[11px] tracking-[0.2em] text-crimson uppercase mb-3">No. 07 — Publication</p>
-      <h1 className="font-display italic text-3xl text-ink mb-2">Publish</h1>
+      <p className="font-mono text-[11px] tracking-[0.2em] text-crimson uppercase font-semibold mb-3">No. 07 — Publication</p>
+      <h1 className="font-display font-bold text-3xl text-ink mb-2">Publish</h1>
       <p className="font-body text-ink/60 mb-8">
         Your book is ready. Export in the format you need for your platform of choice.
       </p>

@@ -1,5 +1,5 @@
 import { useCallback, useState } from 'react';
-import { UploadCloud, FileText } from 'lucide-react';
+import { FileText } from 'lucide-react';
 import { useBookStore } from '../store/useBookStore';
 
 export default function UploadStage() {
@@ -27,10 +27,14 @@ export default function UploadStage() {
   );
 
   return (
-    <div className="h-full overflow-y-auto max-w-2xl mx-auto py-16 px-6">
-      <p className="font-mono text-[11px] tracking-[0.2em] text-crimson uppercase mb-3">No. 01 — Manuscript</p>
-      <h1 className="font-display italic text-4xl text-ink mb-3">Bring your manuscript</h1>
-      <p className="font-body text-ink/60 mb-10 leading-relaxed">
+    <div className="h-full overflow-y-auto max-w-2xl mx-auto py-16 px-6 font-display">
+      <span className="text-crimson font-mono tracking-widest text-xs uppercase font-semibold">
+        No. 01 — Manuscript
+      </span>
+
+      <h1 className="text-4xl font-bold mt-2 mb-4 text-ink">Bring your manuscript</h1>
+
+      <p className="text-ink/65 text-lg leading-relaxed max-w-2xl mb-8 font-body">
         Upload a Word document or plain text file. Pagebound detects your chapters, then walks you
         through polishing the prose, writing an introduction, building an index, designing a cover,
         and exporting a publish-ready EPUB, DOCX, or print PDF.
@@ -55,19 +59,17 @@ export default function UploadStage() {
           setDragOver(false);
           handleFile(e.dataTransfer.files?.[0]);
         }}
-        className={`flex flex-col items-center justify-center gap-3 border border-dashed py-20 cursor-pointer transition-all duration-200 ${
+        className={`block border-2 border-dashed rounded-lg p-12 text-center cursor-pointer max-w-2xl transition-all duration-200 ${
           dragOver
-            ? 'border-amber-bright bg-amber/5 scale-[1.02] shadow-lg'
-            : 'border-paper-dim hover:border-crimson/50'
+            ? 'border-amber-500 bg-amber-500/10 scale-[1.02] shadow-lg'
+            : 'border-parchment-border bg-parchment hover:bg-parchment-hover'
         }`}
       >
-        <UploadCloud
-          size={36}
-          strokeWidth={1.25}
-          className={dragOver ? 'text-amber-bright animate-pulse' : 'text-crimson'}
-        />
-        <p className="font-body text-ink">Drop your manuscript here, or click to browse</p>
-        <p className="font-mono text-xs text-ink/35 tracking-wide">.DOCX · .TXT · .MD</p>
+        <div className={`text-4xl mb-4 ${dragOver ? 'text-amber-500 animate-pulse' : 'text-crimson'}`}>✍️</div>
+        <p className="text-ink/85 font-semibold text-lg font-body">
+          Drop your manuscript here, or click to browse
+        </p>
+        <p className="text-parchment-muted text-sm mt-2 font-mono">.DOCX · .TXT · .MD</p>
         <input
           type="file"
           accept=".docx,.txt,.md"

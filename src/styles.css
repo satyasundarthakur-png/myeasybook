@@ -6,15 +6,15 @@
 
 /* Pagebound design tokens — international publishing house / editorial catalog theme */
 @theme {
-  --color-ink: #12141c;
-  --color-ink-soft: #1b2340;
-  --color-ink-faint: #2a3358;
-  --color-paper: #f3f1ea;
-  --color-paper-bright: #faf9f6;
+  --color-ink: #1c1c1c;
+  --color-ink-soft: #262626;
+  --color-ink-faint: #3a3a3a;
+  --color-paper: #f3ede0;
+  --color-paper-bright: #faf6ee;
   --color-paper-dim: #e4dfd1;
-  --color-crimson: #a3312a;
-  --color-crimson-bright: #c23f35;
-  --color-crimson-dim: #7a2019;
+  --color-crimson: #b22222;
+  --color-crimson-bright: #c93b34;
+  --color-crimson-dim: #8a1a1a;
   --color-brass: #9c7a3d;
   --color-brass-bright: #b8935a;
   --color-brass-dim: #7a5f2e;
@@ -23,6 +23,10 @@
   --color-moss: #2f5233;
   --color-moss-bright: #3e6b44;
   --color-rust: #b5651d;
+  --color-parchment: #f4ece1;
+  --color-parchment-hover: #ebdcc5;
+  --color-parchment-border: #c8b195;
+  --color-parchment-muted: #8c7b65;
   --font-display: "Newsreader", ui-serif, Georgia, serif;
   --font-body: "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, monospace;

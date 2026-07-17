@@ -57,25 +57,22 @@ export default function Spine() {
               key={s.id}
               disabled={disabled}
               onClick={() => setStage(s.id)}
-              className={`group w-full flex items-baseline gap-3 px-3 py-3 text-left border-l-2 transition-colors ${
+              className={`group w-full flex items-center px-3 py-3 text-left border-l-2 transition-colors ${
                 isActive
-                  ? 'border-crimson bg-ink-soft/60'
+                  ? 'border-amber-500 bg-ink-soft/60'
                   : 'border-transparent hover:bg-ink-soft/30'
               } ${disabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}
             >
               <span
-                className={`font-mono text-[11px] tabular-nums ${
-                  isActive ? 'text-crimson-bright' : isDone ? 'text-brass' : 'text-paper/35'
+                className={`font-mono text-[13px] tracking-wide uppercase transition-colors ${
+                  isActive
+                    ? 'text-amber-500 font-semibold'
+                    : isDone
+                      ? 'text-slate-300 hover:text-slate-200'
+                      : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                {CatalogNumber(idx + 1)}
-              </span>
-              <span
-                className={`font-body text-[13px] tracking-wide uppercase ${
-                  isActive ? 'text-paper-bright' : isDone ? 'text-paper/75' : 'text-paper/45'
-                }`}
-              >
-                {s.label}
+                {CatalogNumber(idx + 1)} {s.label.toUpperCase()}
               </span>
             </button>
           );

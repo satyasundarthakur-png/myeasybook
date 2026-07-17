@@ -13,8 +13,8 @@ export default function CoverStage() {
   return (
     <div className="h-full overflow-y-auto max-w-4xl mx-auto py-12 px-6 grid grid-cols-[280px_1fr] gap-10">
       <div>
-        <p className="font-mono text-[11px] tracking-[0.2em] text-crimson uppercase mb-3">No. 06 — Jacket Design</p>
-        <h1 className="font-display italic text-3xl text-ink mb-6">Cover</h1>
+        <p className="font-mono text-[11px] tracking-[0.2em] text-crimson uppercase font-semibold mb-3">No. 06 — Jacket Design</p>
+        <h1 className="font-display font-bold text-3xl text-ink mb-6">Cover</h1>
 
         <label className="block font-mono text-xs text-ink/40 mb-1 tracking-wide">TITLE</label>
         <input
