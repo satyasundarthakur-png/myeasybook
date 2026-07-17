@@ -17,6 +17,42 @@ export class GroqRequestError extends Error {
 }
 
 /**
+ * Strips a leaked reasoning-model scratchpad from a response.
+ *
+ * Reasoning models on Groq (the gpt-oss family, Qwen3 family) generate an
+ * internal <think>...</think> block before their real answer. groqComplete
+ * requests reasoning_format: "hidden" to suppress this at the API level,
+ * but there's a documented Groq bug (community.groq.com, "GPT-OSS-120B:
+ * Reasoning tokens ... appearing in responses despite configuration to
+ * hide reasoning") where it can still leak through for gpt-oss-120b — this
+ * is a defensive second layer, not a substitute for the API parameter.
+ *
+ * Confirmed against real output from this exact failure mode: a Polish run
+ * returned entire chapters replaced by the model's step-by-step correction
+ * reasoning ("1. Analyze User Input... 2. Identify Constraints... Let's
+ * verify...") instead of the corrected text.
+ */
+export function stripReasoningArtifacts(text: string): string {
+  const cleaned = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
+  // An unclosed <think> almost always means the response was cut off
+  // mid-reasoning (ran out of tokens) before ever producing a real answer —
+  // there's no usable content to recover from that, so fail loudly instead
+  // of silently returning the dangling reasoning fragment as if it were content.
+  if (/<think>/i.test(cleaned)) {
+    throw new Error(
+      'The model got stuck reasoning and never produced a final answer (unclosed <think> block). Try again, or switch models.'
+    );
+  }
+
+  if (!cleaned) {
+    throw new Error('Groq returned only reasoning content with no final answer.');
+  }
+
+  return cleaned;
+}
+
+/**
  * Minimal Groq chat-completion wrapper. Called directly from the browser,
  * matching the pattern used across the author's other Lovable + Groq apps.
  *
@@ -49,6 +85,9 @@ export async function groqComplete(
         messages,
         temperature: opts.temperature ?? 0.4,
         max_tokens: opts.maxTokens ?? 4096,
+        // Suppress reasoning-model scratchpad content — see stripReasoningArtifacts
+        // above for why this alone isn't fully trusted for every model.
+        reasoning_format: 'hidden',
       }),
     });
 
@@ -56,7 +95,7 @@ export async function groqComplete(
       const data = await res.json();
       const content = data?.choices?.[0]?.message?.content;
       if (!content) throw new Error('Groq returned an empty response.');
-      return content as string;
+      return stripReasoningArtifacts(content as string);
     }
 
     const retryable = res.status === 429 || res.status >= 500;
