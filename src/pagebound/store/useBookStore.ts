@@ -85,11 +85,12 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
       const { text: cleanedText, report } = cleanManuscriptText(parsed.rawText);
 
       let cleanupNote: string | null = null;
-      if (report.strippedViewerChrome || report.strippedHeaderLines > 0) {
+      if (report.strippedViewerChrome || report.strippedHeaderLines > 0 || report.reflowedParagraphs) {
         const parts: string[] = [];
         if (report.strippedViewerChrome) parts.push('removed web page navigation text');
         if (report.strippedHeaderLines > 0) parts.push(`removed ${report.strippedHeaderLines} repeated running-header lines`);
-        cleanupNote = `Cleaned up the manuscript before detecting chapters: ${parts.join(' and ')}.`;
+        if (report.reflowedParagraphs) parts.push('merged scanned-line fragments into flowing paragraphs');
+        cleanupNote = `Cleaned up the manuscript before detecting chapters: ${parts.join(', ')}.`;
       }
 
       set({ processingMessage: 'Detecting chapters…' });

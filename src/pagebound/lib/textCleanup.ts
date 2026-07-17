@@ -11,6 +11,7 @@
 export interface CleanupReport {
   strippedViewerChrome: boolean;
   strippedHeaderLines: number;
+  reflowedParagraphs: boolean;
 }
 
 /**
@@ -57,12 +58,23 @@ function stripRepeatedRunningHeaders(text: string): { text: string; removed: num
   const MIN_DIGIT_SUFFIX_RATIO = 0.5;
   const MIN_LINE_SPREAD = 20; // cheap sanity floor against tightly-clustered false positives
 
-  // Strip trailing page numbers/punctuation, including common Devanagari/Odia
-  // digit and punctuation marks, to group "Chapter One 23" with "Chapter One 45".
+  // Strip trailing AND leading page numbers/punctuation, including common
+  // Devanagari/Odia digit and punctuation marks — running headers appear
+  // as both "Book Title 23" and "23 Book Title" depending on the source's
+  // original page layout (left vs. right page numbering).
   const normalize = (line: string) =>
-    line.trim().replace(/[\d.\-\s\]\[()।॥०-९୦-୯]+$/g, '').trim();
+    line
+      .trim()
+      .replace(/[\d.\-\s\]\[()।॥०-९୦-୯]+$/g, '')
+      .replace(/^[\d.\-\s\]\[()।॥०-९୦-୯]+/g, '')
+      .trim();
 
-  const suffixHasDigit = (trimmed: string, key: string) => /[\d०-९୦-୯]/.test(trimmed.slice(key.length));
+  const suffixOrPrefixHasDigit = (trimmed: string, key: string) => {
+    const keyStart = trimmed.indexOf(key);
+    const prefix = keyStart > 0 ? trimmed.slice(0, keyStart) : '';
+    const suffix = keyStart >= 0 ? trimmed.slice(keyStart + key.length) : '';
+    return /[\d०-९୦-୯]/.test(prefix) || /[\d०-९୦-୯]/.test(suffix);
+  };
 
   const occurrences = new Map<string, { idxs: number[]; digitSuffixCount: number }>();
   lines.forEach((line, idx) => {
@@ -73,7 +85,7 @@ function stripRepeatedRunningHeaders(text: string): { text: string; removed: num
     if (!occurrences.has(key)) occurrences.set(key, { idxs: [], digitSuffixCount: 0 });
     const entry = occurrences.get(key)!;
     entry.idxs.push(idx);
-    if (suffixHasDigit(trimmed, key)) entry.digitSuffixCount++;
+    if (suffixOrPrefixHasDigit(trimmed, key)) entry.digitSuffixCount++;
   });
 
   const headerLineIndexes = new Set<number>();
@@ -90,14 +102,81 @@ function stripRepeatedRunningHeaders(text: string): { text: string; removed: num
   return { text: cleaned.join('\n'), removed: headerLineIndexes.size };
 }
 
+/**
+ * Scanned books are frequently OCR'd/extracted with one Word paragraph per
+ * physical printed line, rather than per logical paragraph — mammoth (the
+ * .docx text extractor used here) always joins consecutive paragraphs with
+ * a blank line, so this produces long runs of very short "paragraphs" (one
+ * per original page line) with no way to tell them apart from genuine
+ * paragraph breaks just by looking at blank-line spacing.
+ *
+ * Left alone, every export (DOCX/EPUB/print) renders each of these as its
+ * own short paragraph — confirmed directly against a real export: 100% of
+ * paragraphs under 80 characters, median 59 — which is what produces a
+ * page that looks like text stacked down the left side with the right
+ * two-thirds empty on every line, since none of them are long enough to
+ * wrap.
+ *
+ * This is the standard "line rejoining" step from OCR post-processing
+ * tooling (e.g. OCRnormalizer's "rejoins words broken across a linebreak").
+ * Merges consecutive short chunks into flowing paragraphs, using sentence-
+ * final punctuation as the signal for a genuine paragraph boundary, and
+ * additionally treating a "Speaker--" style prefix as a boundary (common in
+ * play/dialogue scripts, where a new speaker's line should start a new
+ * paragraph even if the previous line technically lacked closing
+ * punctuation due to an OCR gap).
+ *
+ * Deliberately preserves any run of 4+ newlines untouched — that's the
+ * same threshold chapterDetector's blank-gap splitter uses for genuine
+ * structural boundaries (acts, sections, chapters), so this only reflows
+ * the noise *within* a section, never merges across a real one.
+ */
+function reflowParagraphs(text: string): string {
+  const HARD_BREAK = /\n{4,}/;
+  const TERMINAL_PUNCTUATION = /[।॥.!?:"')\u2019\u201d]\s*$/;
+  const NEW_SPEAKER = /^[^\s\-–—]{1,30}\s*[-–—]{2,}/;
+
+  const reflowSection = (section: string): string => {
+    const chunks = section
+      .split(/\n\n+/)
+      .map((c) => c.trim())
+      .filter(Boolean);
+
+    const paragraphs: string[] = [];
+    let buffer = '';
+    for (const chunk of chunks) {
+      const bufferEndsSentence = TERMINAL_PUNCTUATION.test(buffer);
+      const chunkStartsNewSpeaker = NEW_SPEAKER.test(chunk);
+      if (buffer && (bufferEndsSentence || chunkStartsNewSpeaker)) {
+        paragraphs.push(buffer);
+        buffer = chunk;
+      } else {
+        buffer = buffer ? `${buffer} ${chunk}` : chunk;
+      }
+    }
+    if (buffer) paragraphs.push(buffer);
+    return paragraphs.join('\n\n');
+  };
+
+  return text
+    .split(HARD_BREAK)
+    .map(reflowSection)
+    .join('\n\n\n\n');
+}
+
 export function cleanManuscriptText(rawText: string): { text: string; report: CleanupReport } {
   const afterChrome = stripArchiveOrgChrome(rawText);
   const afterHeaders = stripRepeatedRunningHeaders(afterChrome.text);
+  const beforeReflowParagraphCount = afterHeaders.text.split(/\n\n+/).filter((c) => c.trim()).length;
+  const reflowedText = reflowParagraphs(afterHeaders.text);
+  const afterReflowParagraphCount = reflowedText.split(/\n\n+/).filter((c) => c.trim()).length;
+
   return {
-    text: afterHeaders.text,
+    text: reflowedText,
     report: {
       strippedViewerChrome: afterChrome.stripped,
       strippedHeaderLines: afterHeaders.removed,
+      reflowedParagraphs: afterReflowParagraphCount < beforeReflowParagraphCount * 0.8,
     },
   };
 }
