@@ -85,7 +85,8 @@ ${summarySource}${coverageNote}`;
 export async function extractIndexEntries(
   chapters: Chapter[],
   apiKey: string,
-  model: string
+  model: string,
+  onProgress?: (processed: number, total: number) => void
 ): Promise<IndexEntry[]> {
   const entriesMap = new Map<string, Set<number>>();
 
@@ -97,6 +98,8 @@ export async function extractIndexEntries(
     chapters.reduce((sum, c) => sum + (c.polishedText ?? c.originalText).length, 0) / Math.max(1, chapters.length);
   const batchSize = avgLen < 400 ? 10 : avgLen < 1500 ? 5 : 3;
   const excerptChars = avgLen < 400 ? 400 : 3000;
+  const totalBatches = Math.ceil(chapters.length / batchSize);
+  let batchesDone = 0;
 
   for (let i = 0; i < chapters.length; i += batchSize) {
     const batch = chapters.slice(i, i + batchSize);
@@ -130,6 +133,9 @@ ${source}`;
     } catch {
       // Skip a failed batch rather than aborting the whole index.
     }
+
+    batchesDone++;
+    onProgress?.(batchesDone, totalBatches);
 
     if (i + batchSize < chapters.length) await sleep(150);
   }

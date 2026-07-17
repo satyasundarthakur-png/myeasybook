@@ -2,11 +2,13 @@ import { PenLine, User, Loader2 } from 'lucide-react';
 import { useBookStore } from '../store/useBookStore';
 
 export default function TopBar() {
-  const { meta, setMeta, isProcessing, processingMessage, polishProgress } = useBookStore();
+  const { meta, setMeta, isProcessing, processingMessage, polishProgress, indexProgress } = useBookStore();
 
   const percent = polishProgress && polishProgress.total > 0
     ? Math.round((polishProgress.processed / polishProgress.total) * 100)
-    : null;
+    : indexProgress && indexProgress.total > 0
+      ? Math.round((indexProgress.processed / indexProgress.total) * 100)
+      : null;
 
   return (
     <header className="flex items-center gap-4 px-6 py-4 border-b border-paper-dim bg-paper-bright">

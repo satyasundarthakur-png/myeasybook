@@ -31,7 +31,7 @@ function Colophon() {
 }
 
 export default function Spine() {
-  const { stage, setStage, chapters, reset } = useBookStore();
+  const { stage, setStage, chapters, groups, reset } = useBookStore();
 
   const handleReset = () => {
     if (confirm('Are you sure you want to reset your project? This will clear your current manuscript.')) {
@@ -109,7 +109,11 @@ export default function Spine() {
         </button>
 
         <p className="font-mono text-[10px] tracking-[0.15em] text-slate-600 uppercase pt-2">
-          {chapters.length > 0 ? `${chapters.length} chapters` : 'No manuscript'}
+          {chapters.length === 0
+            ? 'No manuscript'
+            : groups.length > 1
+              ? `${groups.length} sections · ${chapters.length} items`
+              : `${chapters.length} chapters`}
         </p>
       </div>
     </aside>

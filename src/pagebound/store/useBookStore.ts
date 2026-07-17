@@ -55,6 +55,7 @@ const initialState: BookState = {
   isProcessing: false,
   processingMessage: '',
   polishProgress: null,
+  indexProgress: null,
 };
 
 export const useBookStore = create<BookState & BookActions>((set, get) => ({
@@ -199,12 +200,23 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
 
   buildIndex: async () => {
     const { chapters, groqApiKey, groqModel } = get();
-    set({ isProcessing: true, processingMessage: 'Extracting index terms…' });
+    const total = chapters.length;
+    set({
+      isProcessing: true,
+      processingMessage: `Extracting index terms… (0/${total})`,
+      indexProgress: { total, processed: 0 },
+    });
     try {
-      const entries = await extractIndexEntries(chapters, groqApiKey, groqModel);
-      set({ indexEntries: entries, isProcessing: false, processingMessage: '' });
+      const entries = await extractIndexEntries(chapters, groqApiKey, groqModel, (processed, totalBatches) => {
+        const percent = totalBatches > 0 ? Math.round((processed / totalBatches) * 100) : 0;
+        set({
+          processingMessage: `Extracting index terms… ${percent}% (${processed}/${totalBatches} batches)`,
+          indexProgress: { total: totalBatches, processed },
+        });
+      });
+      set({ indexEntries: entries, isProcessing: false, processingMessage: '', indexProgress: null });
     } catch (err) {
-      set({ isProcessing: false, processingMessage: '' });
+      set({ isProcessing: false, processingMessage: '', indexProgress: null });
       throw err;
     }
   },
