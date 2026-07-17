@@ -2,6 +2,7 @@ import Spine from './components/Spine';
 import TopBar from './components/TopBar';
 import UploadStage from './components/UploadStage';
 import ChaptersStage from './components/ChaptersStage';
+import OcrFixStage from './components/OcrFixStage';
 import PolishStage from './components/PolishStage';
 import FrontMatterStage from './components/FrontMatterStage';
 import IndexStage from './components/IndexStage';
@@ -20,6 +21,7 @@ export default function App() {
         <main className="flex-1 min-h-0 overflow-hidden bg-paper-bright">
           {stage === 'upload' && <UploadStage />}
           {stage === 'chapters' && <ChaptersStage />}
+          {stage === 'ocr-fix' && <OcrFixStage />}
           {stage === 'polish' && <PolishStage />}
           {stage === 'front-matter' && <FrontMatterStage />}
           {stage === 'index' && <IndexStage />}

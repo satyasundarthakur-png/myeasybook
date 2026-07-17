@@ -92,10 +92,10 @@ export default function ChaptersStage() {
       </div>
 
       <button
-        onClick={() => setStage('polish')}
+        onClick={() => setStage('ocr-fix')}
         className="mt-8 flex items-center gap-2 bg-crimson hover:bg-crimson-bright text-paper-bright font-semibold px-5 py-2.5"
       >
-        Continue to polishing <ArrowRight size={16} />
+        Continue <ArrowRight size={16} />
       </button>
     </div>
   );

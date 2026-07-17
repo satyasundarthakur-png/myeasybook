@@ -1,6 +1,6 @@
 import type { Chapter, IndexEntry } from '../types/book';
 import { chunkText, groqComplete } from './groq';
-import { sleep } from './shared';
+import { sleep, resolveChapterText } from './shared';
 
 const POLISH_SYSTEM = `You are a professional line editor preparing a manuscript for publication.
 Fix grammar, punctuation, and awkward phrasing. Improve flow and clarity.
@@ -56,7 +56,7 @@ export async function generateIntroduction(
   const excerptChars = sample.length > 12 ? 400 : 900;
 
   const summarySource = sample
-    .map((c) => `Chapter ${c.number} — ${c.title}:\n${(c.polishedText ?? c.originalText).slice(0, excerptChars)}`)
+    .map((c) => `Chapter ${c.number} — ${c.title}:\n${(resolveChapterText(c)).slice(0, excerptChars)}`)
     .join('\n\n');
 
   const coverageNote =
@@ -95,7 +95,7 @@ export async function extractIndexEntries(
   // batches — and pace requests so large manuscripts (hundreds of batches)
   // don't trigger the same rate-limit failure storm polishing did.
   const avgLen =
-    chapters.reduce((sum, c) => sum + (c.polishedText ?? c.originalText).length, 0) / Math.max(1, chapters.length);
+    chapters.reduce((sum, c) => sum + (resolveChapterText(c)).length, 0) / Math.max(1, chapters.length);
   const batchSize = avgLen < 400 ? 10 : avgLen < 1500 ? 5 : 3;
   const excerptChars = avgLen < 400 ? 400 : 3000;
   const totalBatches = Math.ceil(chapters.length / batchSize);
@@ -104,7 +104,7 @@ export async function extractIndexEntries(
   for (let i = 0; i < chapters.length; i += batchSize) {
     const batch = chapters.slice(i, i + batchSize);
     const source = batch
-      .map((c) => `Chapter ${c.number}:\n${(c.polishedText ?? c.originalText).slice(0, excerptChars)}`)
+      .map((c) => `Chapter ${c.number}:\n${(resolveChapterText(c)).slice(0, excerptChars)}`)
       .join('\n\n');
 
     const prompt = `Extract 8-20 index-worthy terms (people, places, named concepts, technical terms, recurring topics) from the text below, per chapter.

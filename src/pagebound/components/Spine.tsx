@@ -3,9 +3,10 @@ import type { Stage } from '../types/book';
 import { useBookStore } from '../store/useBookStore';
 import AiSettingsPanel from './AiSettingsPanel';
 
-const STAGES: { id: Stage; label: string }[] = [
+const STAGES: { id: Stage; label: string; optional?: boolean }[] = [
   { id: 'upload', label: 'Manuscript' },
   { id: 'chapters', label: 'Chapters' },
+  { id: 'ocr-fix', label: 'Fix OCR', optional: true },
   { id: 'polish', label: 'Polish' },
   { id: 'front-matter', label: 'Introduction' },
   { id: 'index', label: 'Index' },
@@ -82,6 +83,9 @@ export default function Spine() {
                 >
                   {s.label.toUpperCase()}
                 </span>
+                {s.optional && (
+                  <span className="text-[9px] font-mono text-slate-600 tracking-wide">OPT.</span>
+                )}
               </button>
             );
           })}

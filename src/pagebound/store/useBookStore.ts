@@ -5,6 +5,7 @@ import { detectChapters } from '../lib/chapterDetector';
 import { cleanManuscriptText } from '../lib/textCleanup';
 import { groupChapters } from '../lib/chapterGrouper';
 import { extractIndexEntries, generateIntroduction, polishChapterText } from '../lib/aiWriter';
+import { fixChapterOcrErrors } from '../lib/ocrFix';
 import { sleep } from '../lib/shared';
 
 interface BookActions {
@@ -13,9 +14,12 @@ interface BookActions {
   setGroqSettings: (apiKey: string, model: string) => void;
   setCover: (patch: Partial<BookState['cover']>) => void;
   uploadFile: (file: File) => Promise<void>;
+  fixSingleChapterOcr: (id: string) => Promise<void>;
+  fixAllChaptersOcr: () => Promise<void>;
   polishAllChapters: () => Promise<void>;
   polishSingleChapter: (id: string) => Promise<void>;
   updateChapterText: (id: string, text: string) => void;
+  updateChapterOcrFixedText: (id: string, text: string) => void;
   generateIntro: () => Promise<void>;
   buildIndex: () => Promise<void>;
   reset: () => void;
@@ -56,6 +60,7 @@ const initialState: BookState = {
   isProcessing: false,
   processingMessage: '',
   polishProgress: null,
+  ocrFixProgress: null,
   indexProgress: null,
   lastCleanupNote: null,
 };
@@ -115,6 +120,80 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
     }
   },
 
+  fixSingleChapterOcr: async (id: string) => {
+    const { chapters, meta, groqApiKey, groqModel } = get();
+    const chapter = chapters.find((c) => c.id === id);
+    if (!chapter) return;
+
+    set({
+      chapters: get().chapters.map((c) => (c.id === id ? { ...c, ocrStatus: 'fixing' } : c)),
+    });
+
+    try {
+      const fixedText = await fixChapterOcrErrors(
+        chapter.originalText,
+        { bookTitle: meta.title, bookAuthor: meta.author },
+        groqApiKey,
+        groqModel
+      );
+      set((s) => ({
+        chapters: s.chapters.map((c) =>
+          c.id === id ? { ...c, ocrFixedText: fixedText, ocrStatus: 'fixed' } : c
+        ),
+      }));
+    } catch (err) {
+      set((s) => ({
+        chapters: s.chapters.map((c) => (c.id === id ? { ...c, ocrStatus: 'error' } : c)),
+      }));
+      throw err;
+    }
+  },
+
+  fixAllChaptersOcr: async () => {
+    const { chapters } = get();
+    const total = chapters.length;
+    set({
+      isProcessing: true,
+      ocrFixProgress: { total, processed: 0, succeeded: 0, failed: 0 },
+    });
+
+    for (let i = 0; i < chapters.length; i++) {
+      const chapter = chapters[i];
+      const progressSoFar = get().ocrFixProgress!;
+      const percent = total > 0 ? Math.round((progressSoFar.processed / total) * 100) : 0;
+      set({
+        processingMessage: `Fixing OCR errors ${progressSoFar.processed}/${total} (${percent}%) — ${progressSoFar.failed} failed so far`,
+      });
+
+      let succeeded = false;
+      try {
+        await get().fixSingleChapterOcr(chapter.id);
+        succeeded = true;
+      } catch {
+        succeeded = false;
+      }
+
+      set((s) => ({
+        ocrFixProgress: s.ocrFixProgress
+          ? {
+              ...s.ocrFixProgress,
+              processed: s.ocrFixProgress.processed + 1,
+              succeeded: s.ocrFixProgress.succeeded + (succeeded ? 1 : 0),
+              failed: s.ocrFixProgress.failed + (succeeded ? 0 : 1),
+            }
+          : null,
+      }));
+
+      if (i < chapters.length - 1) await sleep(150);
+    }
+
+    const final = get().ocrFixProgress;
+    set({
+      isProcessing: false,
+      processingMessage: final ? `Done: ${final.succeeded}/${final.total} fixed, ${final.failed} failed` : '',
+    });
+  },
+
   polishSingleChapter: async (id: string) => {
     const { chapters, groqApiKey, groqModel } = get();
     const chapter = chapters.find((c) => c.id === id);
@@ -125,7 +204,8 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
     });
 
     try {
-      const polished = await polishChapterText(chapter.originalText, groqApiKey, groqModel);
+      const sourceText = chapter.ocrFixedText ?? chapter.originalText;
+      const polished = await polishChapterText(sourceText, groqApiKey, groqModel);
       set((s) => ({
         chapters: s.chapters.map((c) =>
           c.id === id ? { ...c, polishedText: polished, status: 'polished' } : c
@@ -198,6 +278,11 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
   updateChapterText: (id, text) =>
     set((s) => ({
       chapters: s.chapters.map((c) => (c.id === id ? { ...c, polishedText: text } : c)),
+    })),
+
+  updateChapterOcrFixedText: (id: string, text: string) =>
+    set((s) => ({
+      chapters: s.chapters.map((c) => (c.id === id ? { ...c, ocrFixedText: text } : c)),
     })),
 
   generateIntro: async () => {

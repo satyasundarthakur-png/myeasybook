@@ -38,6 +38,8 @@ function splitByHeadingPattern(rawText: string): Chapter[] | null {
       title: breakpoints[i].title || `Chapter ${chapters.length + 1}`,
       originalText: body,
       polishedText: null,
+      ocrFixedText: null,
+      ocrStatus: 'raw',
       status: 'raw',
       wordCount: wordCount(body),
     });
@@ -137,7 +139,9 @@ function splitByAdhyayaMarkers(rawText: string): Chapter[] | null {
         title: `Adhyaya ${num}`,
         originalText: body,
         polishedText: null,
-        status: 'raw',
+        ocrFixedText: null,
+      ocrStatus: 'raw',
+      status: 'raw',
         wordCount: wordCount(body),
       });
     }
@@ -153,6 +157,8 @@ function splitByAdhyayaMarkers(rawText: string): Chapter[] | null {
       title: 'Closing',
       originalText: tail,
       polishedText: null,
+      ocrFixedText: null,
+      ocrStatus: 'raw',
       status: 'raw',
       wordCount: wordCount(tail),
     });
@@ -181,6 +187,8 @@ function splitByBlankGaps(rawText: string): Chapter[] | null {
     title: `Chapter ${idx + 1}`,
     originalText: body,
     polishedText: null,
+    ocrFixedText: null,
+    ocrStatus: 'raw' as const,
     status: 'raw' as const,
     wordCount: wordCount(body),
   }));
@@ -235,6 +243,8 @@ ${outline}`;
       title: marks[i].title || `Chapter ${chapters.length + 1}`,
       originalText: body,
       polishedText: null,
+      ocrFixedText: null,
+      ocrStatus: 'raw',
       status: 'raw',
       wordCount: wordCount(body),
     });
@@ -273,7 +283,9 @@ export async function detectChapters(
         title: 'Chapter 1',
         originalText: rawText.trim(),
         polishedText: null,
-        status: 'raw',
+        ocrFixedText: null,
+      ocrStatus: 'raw',
+      status: 'raw',
         wordCount: wordCount(rawText),
       },
     ],

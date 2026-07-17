@@ -1,4 +1,5 @@
 import type { BookState, Chapter } from '../types/book';
+import { resolveChapterText } from './shared';
 
 export interface ExportUnit {
   number: number;
@@ -33,7 +34,7 @@ export function buildExportUnits(book: BookState): ExportUnit[] {
     return book.chapters.map((c) => ({
       number: c.number,
       title: c.title,
-      body: c.polishedText ?? c.originalText,
+      body: resolveChapterText(c),
     }));
   }
 
@@ -43,7 +44,7 @@ export function buildExportUnits(book: BookState): ExportUnit[] {
     const body = g.chapterIds
       .map((id) => chapterById.get(id))
       .filter((c): c is Chapter => Boolean(c))
-      .map((c) => c.polishedText ?? c.originalText)
+      .map((c) => resolveChapterText(c))
       .join('\n\n');
     return {
       number: idx + 1,

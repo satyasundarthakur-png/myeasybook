@@ -1,6 +1,7 @@
 export type Stage =
   | 'upload'
   | 'chapters'
+  | 'ocr-fix'
   | 'polish'
   | 'front-matter'
   | 'index'
@@ -12,6 +13,11 @@ export interface Chapter {
   number: number;
   title: string;
   originalText: string;
+  /** Result of the optional OCR-error-correction pass. When present, this
+   * (not originalText) is what Polish and every export actually use — the
+   * original stays untouched so the user can always compare against it. */
+  ocrFixedText: string | null;
+  ocrStatus: 'raw' | 'fixing' | 'fixed' | 'error';
   polishedText: string | null;
   status: 'raw' | 'polishing' | 'polished' | 'error';
   wordCount: number;
@@ -73,6 +79,7 @@ export interface BookState {
   isProcessing: boolean;
   processingMessage: string;
   polishProgress: PolishProgress | null;
+  ocrFixProgress: PolishProgress | null;
   indexProgress: { total: number; processed: number } | null;
   lastCleanupNote: string | null;
 }
