@@ -119,12 +119,33 @@ ${source}`;
         { temperature: 0.2, maxTokens: 2048 }
       );
       const cleaned = response.replace(/```json|```/g, '').trim();
-      const parsed: { term: string; chapter: number }[] = JSON.parse(cleaned);
-      for (const { term, chapter } of parsed) {
+      const parsed: unknown = JSON.parse(cleaned);
+      if (!Array.isArray(parsed)) continue;
+
+      for (const entry of parsed) {
+        if (typeof entry !== 'object' || entry === null) continue;
+        const { term, chapter } = entry as { term?: unknown; chapter?: unknown };
+
+        if (typeof term !== 'string') continue;
         const key = term.trim();
-        if (!key) continue;
+        if (!key || key.length > 80) continue; // sane upper bound against garbage terms
+
+        // Don't trust the model to always return a clean integer here — a
+        // malformed response like {"chapter": "7 नों"} (extra text bleeding
+        // into the field) was flowing straight through into the rendered
+        // index as "Ch. 7 नों" before this validation existed. Extract just
+        // the leading digits and reject anything that doesn't parse as a
+        // real chapter number within range.
+        const chapterNum =
+          typeof chapter === 'number'
+            ? chapter
+            : typeof chapter === 'string'
+              ? parseInt(chapter.match(/^\s*(\d+)/)?.[1] ?? '', 10)
+              : NaN;
+        if (!Number.isInteger(chapterNum) || chapterNum < 1 || chapterNum > chapters.length) continue;
+
         if (!entriesMap.has(key)) entriesMap.set(key, new Set());
-        entriesMap.get(key)!.add(chapter);
+        entriesMap.get(key)!.add(chapterNum);
       }
     } catch {
       // Skip a failed batch rather than aborting the whole index.
