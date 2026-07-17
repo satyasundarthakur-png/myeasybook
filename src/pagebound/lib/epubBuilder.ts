@@ -1,7 +1,8 @@
 import JSZip from 'jszip';
 import type { BookState } from '../types/book';
-import { resolveCoverImageDataUrl } from './coverGenerator';
+import { resolveCoverImageDataUrl, mimeTypeFromDataUrl } from './coverGenerator';
 import { escapeXml } from './shared';
+import { buildExportUnits } from './exportUnits';
 
 function paragraphsToXhtml(text: string): string {
   return text
@@ -16,6 +17,14 @@ function dataUrlToUint8Array(dataUrl: string): Uint8Array {
   const bytes = new Uint8Array(binary.length);
   for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
   return bytes;
+}
+
+// File extension for a given mime type, for the cover file written into the EPUB.
+function extensionForMime(mime: string): string {
+  if (mime.includes('jpeg') || mime.includes('jpg')) return 'jpg';
+  if (mime.includes('gif')) return 'gif';
+  if (mime.includes('webp')) return 'webp';
+  return 'png';
 }
 
 const STYLE_CSS = `
@@ -47,22 +56,26 @@ export async function buildEpub(book: BookState): Promise<Blob> {
   const oebps = zip.folder('OEBPS')!;
   oebps.file('styles.css', STYLE_CSS);
 
-  // Cover image
-  const coverPngDataUrl = await resolveCoverImageDataUrl(book.cover);
-  oebps.file('cover.png', dataUrlToUint8Array(coverPngDataUrl), { base64: false, binary: true });
+  // Cover image — mime type/extension reflect what resolveCoverImageDataUrl
+  // actually returned (JPEG for a generated cover, whatever format the
+  // author uploaded for a custom one), not hardcoded to PNG.
+  const coverDataUrl = await resolveCoverImageDataUrl(book.cover);
+  const coverMime = mimeTypeFromDataUrl(coverDataUrl);
+  const coverExt = extensionForMime(coverMime);
+  const coverFilename = `cover.${coverExt}`;
+  oebps.file(coverFilename, dataUrlToUint8Array(coverDataUrl), { base64: false, binary: true });
 
   oebps.file(
     'cover.xhtml',
     `<?xml version="1.0" encoding="UTF-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml">
 <head><title>Cover</title><style>body{margin:0;padding:0;} img{width:100%;height:100%;object-fit:cover;}</style></head>
-<body><img src="cover.png" alt="Cover"/></body>
+<body><img src="${coverFilename}" alt="Cover"/></body>
 </html>`
   );
 
-  // Introduction
   const manifestItems: string[] = [
-    `<item id="cover-img" href="cover.png" media-type="image/png" properties="cover-image"/>`,
+    `<item id="cover-img" href="${coverFilename}" media-type="${coverMime}" properties="cover-image"/>`,
     `<item id="cover" href="cover.xhtml" media-type="application/xhtml+xml"/>`,
   ];
   const spineItems: string[] = [`<itemref idref="cover" linear="no"/>`];
@@ -82,24 +95,26 @@ export async function buildEpub(book: BookState): Promise<Blob> {
     navItems.push(`<li><a href="introduction.xhtml">Introduction</a></li>`);
   }
 
-  // Chapters
-  for (const chapter of book.chapters) {
-    const body = chapter.polishedText ?? chapter.originalText;
+  // Chapters — one spine item per export unit (a group's concatenated
+  // content for large manuscripts, or one per chapter for normal-sized
+  // ones), not per raw detected chapter. A manuscript grouped into 50
+  // navigable sections in the app previously still exported 1,200+
+  // separate spine items and TOC entries, one per tiny raw chapter.
+  const units = buildExportUnits(book);
+  for (const unit of units) {
     oebps.file(
-      `chapter-${chapter.number}.xhtml`,
+      `chapter-${unit.number}.xhtml`,
       `<?xml version="1.0" encoding="UTF-8"?>
 <html xmlns="http://www.w3.org/1999/xhtml">
-<head><title>${escapeXml(chapter.title)}</title><link rel="stylesheet" href="styles.css"/></head>
-<body><h1>Chapter ${chapter.number}</h1><h2 class="subtitle">${escapeXml(chapter.title)}</h2>${paragraphsToXhtml(body)}</body>
+<head><title>${escapeXml(unit.title)}</title><link rel="stylesheet" href="styles.css"/></head>
+<body><h1>${escapeXml(unit.title)}</h1>${paragraphsToXhtml(unit.body)}</body>
 </html>`
     );
     manifestItems.push(
-      `<item id="chapter-${chapter.number}" href="chapter-${chapter.number}.xhtml" media-type="application/xhtml+xml"/>`
+      `<item id="chapter-${unit.number}" href="chapter-${unit.number}.xhtml" media-type="application/xhtml+xml"/>`
     );
-    spineItems.push(`<itemref idref="chapter-${chapter.number}"/>`);
-    navItems.push(
-      `<li><a href="chapter-${chapter.number}.xhtml">Chapter ${chapter.number}: ${escapeXml(chapter.title)}</a></li>`
-    );
+    spineItems.push(`<itemref idref="chapter-${unit.number}"/>`);
+    navItems.push(`<li><a href="chapter-${unit.number}.xhtml">${escapeXml(unit.title)}</a></li>`);
   }
 
   // Index

@@ -9,7 +9,8 @@ import {
   ImageRun,
 } from 'docx';
 import type { BookState } from '../types/book';
-import { resolveCoverImageDataUrl } from './coverGenerator';
+import { resolveCoverImageDataUrl, mimeTypeFromDataUrl } from './coverGenerator';
+import { buildExportUnits } from './exportUnits';
 
 function bodyParagraphs(text: string): Paragraph[] {
   return text
@@ -25,6 +26,21 @@ function dataUrlToUint8Array(dataUrl: string): Uint8Array {
   return bytes;
 }
 
+// docx's ImageRun only accepts a fixed set of type strings. Map the actual
+// resolved mime type to the closest one instead of assuming every cover is
+// a PNG (previously true only because the generator always produced PNG;
+// now the generated cover is JPEG, and an author-uploaded cover could be
+// PNG, JPEG, GIF, BMP, or WebP).
+function docxImageType(mime: string): 'png' | 'jpg' | 'gif' | 'bmp' {
+  if (mime.includes('jpeg') || mime.includes('jpg')) return 'jpg';
+  if (mime.includes('gif')) return 'gif';
+  if (mime.includes('bmp')) return 'bmp';
+  return 'png'; // covers png and anything else (e.g. webp — docx has no native
+  // webp support, but browsers will still have re-encoded the canvas output
+  // as one of the above via resolveCoverImageDataUrl for generated covers;
+  // an uploaded webp is a known edge case worth revisiting if it comes up)
+}
+
 export async function buildDocx(book: BookState): Promise<Blob> {
   const children: Paragraph[] = [];
 
@@ -36,7 +52,7 @@ export async function buildDocx(book: BookState): Promise<Blob> {
     new Paragraph({
       children: [
         new ImageRun({
-          type: 'png',
+          type: docxImageType(mimeTypeFromDataUrl(coverDataUrl)),
           data: dataUrlToUint8Array(coverDataUrl),
           transformation: { width: 400, height: 600 },
         }),
@@ -57,24 +73,20 @@ export async function buildDocx(book: BookState): Promise<Blob> {
   }
 
   // Table of contents (static, since Word's dynamic TOC needs field codes)
+  const units = buildExportUnits(book);
   children.push(new Paragraph({ text: 'Table of Contents', heading: HeadingLevel.HEADING_1 }));
-  for (const chapter of book.chapters) {
+  for (const unit of units) {
     children.push(
-      new Paragraph({ text: `Chapter ${chapter.number}: ${chapter.title}` })
+      new Paragraph({ text: `${unit.number}. ${unit.title}` })
     );
   }
   children.push(new Paragraph({ children: [new PageBreak()] }));
 
   // Chapters
-  for (const chapter of book.chapters) {
-    const body = chapter.polishedText ?? chapter.originalText;
+  for (const unit of units) {
     children.push(
-      new Paragraph({ text: `Chapter ${chapter.number}`, heading: HeadingLevel.HEADING_1 }),
-      new Paragraph({
-        children: [new TextRun({ text: chapter.title, italics: true })],
-        spacing: { after: 300 },
-      }),
-      ...bodyParagraphs(body),
+      new Paragraph({ text: unit.title, heading: HeadingLevel.HEADING_1 }),
+      ...bodyParagraphs(unit.body),
       new Paragraph({ children: [new PageBreak()] })
     );
   }

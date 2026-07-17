@@ -1,6 +1,7 @@
 import type { BookState } from '../types/book';
 import { resolveCoverImageDataUrl } from './coverGenerator';
 import { escapeXml as escapeHtml } from './shared';
+import { buildExportUnits } from './exportUnits';
 
 function paragraphs(text: string): string {
   return text
@@ -17,14 +18,14 @@ function paragraphs(text: string): string {
  */
 export async function buildPrintableHtml(book: BookState): Promise<string> {
   const coverDataUrl = await resolveCoverImageDataUrl(book.cover);
+  const units = buildExportUnits(book);
 
-  const chapterSections = book.chapters
+  const chapterSections = units
     .map(
-      (c) => `
+      (u) => `
       <section class="chapter">
-        <h1>Chapter ${c.number}</h1>
-        <h2 class="subtitle">${escapeHtml(c.title)}</h2>
-        ${paragraphs(c.polishedText ?? c.originalText)}
+        <h1>${escapeHtml(u.title)}</h1>
+        ${paragraphs(u.body)}
       </section>`
     )
     .join('\n');
@@ -54,7 +55,7 @@ export async function buildPrintableHtml(book: BookState): Promise<string> {
   const tocSection = `<section class="chapter toc">
     <h1>Table of Contents</h1>
     <ol>
-      ${book.chapters.map((c) => `<li>Chapter ${c.number}: ${escapeHtml(c.title)}</li>`).join('\n')}
+      ${units.map((u) => `<li>${u.number}. ${escapeHtml(u.title)}</li>`).join('\n')}
     </ol>
   </section>`;
 
