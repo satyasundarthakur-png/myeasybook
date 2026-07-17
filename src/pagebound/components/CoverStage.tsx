@@ -11,7 +11,7 @@ export default function CoverStage() {
   const svg = generateCoverSVG(cover);
 
   return (
-    <div className="max-w-4xl mx-auto py-12 px-6 grid grid-cols-[280px_1fr] gap-10">
+    <div className="h-full overflow-y-auto max-w-4xl mx-auto py-12 px-6 grid grid-cols-[280px_1fr] gap-10">
       <div>
         <h1 className="font-display text-3xl text-paper-bright mb-6">Cover</h1>
 

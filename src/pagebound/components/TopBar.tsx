@@ -9,11 +9,15 @@ const MODELS = [
 ];
 
 export default function TopBar() {
-  const { meta, setMeta, groqApiKey, groqModel, setGroqSettings, isProcessing, processingMessage } =
+  const { meta, setMeta, groqApiKey, groqModel, setGroqSettings, isProcessing, processingMessage, polishProgress } =
     useBookStore();
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [keyDraft, setKeyDraft] = useState(groqApiKey);
   const [modelDraft, setModelDraft] = useState(groqModel);
+
+  const percent = polishProgress && polishProgress.total > 0
+    ? Math.round((polishProgress.processed / polishProgress.total) * 100)
+    : null;
 
   return (
     <header className="flex items-center gap-4 px-6 py-4 border-b border-ink-faint bg-ink-soft">
@@ -33,9 +37,18 @@ export default function TopBar() {
       <div className="flex-1" />
 
       {isProcessing && (
-        <span className="flex items-center gap-2 text-brass-bright text-sm font-mono">
-          <Loader2 size={14} className="animate-spin" /> {processingMessage}
-        </span>
+        <div className="flex items-center gap-3 text-brass-bright text-sm font-mono">
+          <Loader2 size={14} className="animate-spin shrink-0" />
+          <span className="whitespace-nowrap">{processingMessage}</span>
+          {percent !== null && (
+            <div className="w-32 h-1.5 bg-ink-faint rounded-full overflow-hidden shrink-0">
+              <div
+                className="h-full bg-brass-bright transition-all duration-300"
+                style={{ width: `${percent}%` }}
+              />
+            </div>
+          )}
+        </div>
       )}
 
       <div className="relative">

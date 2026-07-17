@@ -60,7 +60,7 @@ export default function ExportStage() {
   const totalWords = book.chapters.reduce((sum, c) => sum + c.wordCount, 0);
 
   return (
-    <div className="max-w-2xl mx-auto py-12 px-6">
+    <div className="h-full overflow-y-auto max-w-2xl mx-auto py-12 px-6">
       <h1 className="font-display text-3xl text-paper-bright mb-2">Publish</h1>
       <p className="font-body text-paper/60 mb-8">
         Your book is ready. Export in the format you need for your platform of choice.

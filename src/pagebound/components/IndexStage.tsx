@@ -11,7 +11,7 @@ export default function IndexStage() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto py-12 px-6">
+    <div className="h-full overflow-y-auto max-w-3xl mx-auto py-12 px-6">
       <h1 className="font-display text-3xl text-paper-bright mb-2">Index</h1>
       <p className="font-body text-paper/60 mb-6">
         Extract a back-of-book index of names, places, and recurring terms with their chapter references.

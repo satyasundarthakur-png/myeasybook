@@ -7,7 +7,7 @@ export default function FrontMatterStage() {
   const [error, setError] = useState<string | null>(null);
 
   return (
-    <div className="max-w-3xl mx-auto py-12 px-6">
+    <div className="h-full overflow-y-auto max-w-3xl mx-auto py-12 px-6">
       <h1 className="font-display text-3xl text-paper-bright mb-2">Introduction</h1>
       <p className="font-body text-paper/60 mb-6">
         Generate a draft introduction from your chapters, then edit it to match your voice.

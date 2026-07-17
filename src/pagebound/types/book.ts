@@ -17,6 +17,26 @@ export interface Chapter {
   wordCount: number;
 }
 
+/**
+ * A group of chapters shown together in the UI (e.g. "Chapter 3" containing
+ * 40 verses, or a synthesized "Section 5" batch for manuscripts with no
+ * natural higher-level structure). Every Chapter belongs to exactly one
+ * group; flat manuscripts get a single implicit group.
+ */
+export interface ChapterGroup {
+  id: string;
+  number: number;
+  title: string;
+  chapterIds: string[];
+}
+
+export interface PolishProgress {
+  total: number;
+  processed: number;
+  succeeded: number;
+  failed: number;
+}
+
 export interface IndexEntry {
   term: string;
   chapterNumbers: number[];
@@ -41,6 +61,7 @@ export interface BookState {
   stage: Stage;
   meta: BookMeta;
   chapters: Chapter[];
+  groups: ChapterGroup[];
   introduction: string | null;
   indexEntries: IndexEntry[];
   cover: CoverConfig;
@@ -48,4 +69,5 @@ export interface BookState {
   groqModel: string;
   isProcessing: boolean;
   processingMessage: string;
+  polishProgress: PolishProgress | null;
 }

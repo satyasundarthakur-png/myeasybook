@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { BookState, Chapter, Stage } from '../types/book';
 import { parseUploadedFile } from '../lib/docParser';
 import { detectChapters } from '../lib/chapterDetector';
+import { groupChapters } from '../lib/chapterGrouper';
 import { extractIndexEntries, generateIntroduction, polishChapterText } from '../lib/aiWriter';
 
 interface BookActions {
@@ -38,12 +39,17 @@ function saveGroqSettings(apiKey: string, model: string) {
   }
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 const initialGroq = loadGroqSettings();
 
 const initialState: BookState = {
   stage: 'upload',
   meta: { title: '', author: '', language: 'en', description: '' },
   chapters: [],
+  groups: [],
   introduction: null,
   indexEntries: [],
   cover: { title: '', subtitle: '', author: '', palette: 'leather', layout: 'classic' },
@@ -51,6 +57,7 @@ const initialState: BookState = {
   groqModel: initialGroq.model,
   isProcessing: false,
   processingMessage: '',
+  polishProgress: null,
 };
 
 export const useBookStore = create<BookState & BookActions>((set, get) => ({
@@ -78,10 +85,12 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
       set({ processingMessage: 'Detecting chapters…' });
       const { apiKey, model } = { apiKey: get().groqApiKey, model: get().groqModel };
       const { chapters } = await detectChapters(parsed.rawText, apiKey ? { apiKey, model } : null);
+      const groups = groupChapters(chapters);
 
       const guessedTitle = file.name.replace(/\.(docx|txt|md)$/i, '').replace(/[_-]+/g, ' ');
       set((s) => ({
         chapters,
+        groups,
         meta: { ...s.meta, title: s.meta.title || guessedTitle },
         cover: { ...s.cover, title: s.cover.title || guessedTitle },
         stage: 'chapters',
@@ -100,7 +109,7 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
     if (!chapter) return;
 
     set({
-      chapters: chapters.map((c) => (c.id === id ? { ...c, status: 'polishing' } : c)),
+      chapters: get().chapters.map((c) => (c.id === id ? { ...c, status: 'polishing' } : c)),
     });
 
     try {
@@ -118,18 +127,60 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
     }
   },
 
+  /**
+   * Processes chapters sequentially (Groq's per-minute rate limits make
+   * concurrent bursts counterproductive on large manuscripts) with a small
+   * pacing delay between calls, and reports progress as processed/succeeded/
+   * failed counts rather than the chapter's own (possibly non-sequential,
+   * possibly per-group) number — that mismatch was the source of the
+   * "chapter 740 of 2914 but only 19 polished" confusion.
+   */
   polishAllChapters: async () => {
     const { chapters } = get();
-    set({ isProcessing: true });
-    for (const chapter of chapters) {
-      set({ processingMessage: `Polishing Chapter ${chapter.number} of ${chapters.length}…` });
+    const total = chapters.length;
+    set({
+      isProcessing: true,
+      polishProgress: { total, processed: 0, succeeded: 0, failed: 0 },
+    });
+
+    for (let i = 0; i < chapters.length; i++) {
+      const chapter = chapters[i];
+      const progressSoFar = get().polishProgress!;
+      const percent = total > 0 ? Math.round((progressSoFar.processed / total) * 100) : 0;
+      set({
+        processingMessage: `Polishing ${progressSoFar.processed}/${total} (${percent}%) — ${progressSoFar.failed} failed so far`,
+      });
+
+      let succeeded = false;
       try {
         await get().polishOneChapter(chapter.id);
+        succeeded = true;
       } catch {
-        // continue with remaining chapters even if one fails
+        succeeded = false;
       }
+
+      set((s) => ({
+        polishProgress: s.polishProgress
+          ? {
+              ...s.polishProgress,
+              processed: s.polishProgress.processed + 1,
+              succeeded: s.polishProgress.succeeded + (succeeded ? 1 : 0),
+              failed: s.polishProgress.failed + (succeeded ? 0 : 1),
+            }
+          : null,
+      }));
+
+      // Small pacing delay between requests. groq.ts already retries
+      // individual 429s with backoff; this just avoids triggering the
+      // rate limit in the first place on very large manuscripts.
+      if (i < chapters.length - 1) await sleep(150);
     }
-    set({ isProcessing: false, processingMessage: '' });
+
+    const final = get().polishProgress;
+    set({
+      isProcessing: false,
+      processingMessage: final ? `Done: ${final.succeeded}/${final.total} polished, ${final.failed} failed` : '',
+    });
   },
 
   updateChapterText: (id, text) =>
@@ -161,7 +212,12 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
     }
   },
 
-  reset: () => set({ ...initialState, groqApiKey: get().groqApiKey, groqModel: get().groqModel }),
+  reset: () =>
+    set({
+      ...initialState,
+      groqApiKey: get().groqApiKey,
+      groqModel: get().groqModel,
+    }),
 }));
 
 export function chapterProgressLabel(chapters: Chapter[]): string {

@@ -27,7 +27,7 @@ export default function UploadStage() {
   );
 
   return (
-    <div className="max-w-2xl mx-auto py-16 px-6">
+    <div className="h-full overflow-y-auto max-w-2xl mx-auto py-16 px-6">
       <h1 className="font-display text-4xl text-paper-bright mb-3">Bring your manuscript</h1>
       <p className="font-body text-paper/60 mb-10 leading-relaxed">
         Upload a Word document or plain text file. Pagebound detects your chapters, then walks you
