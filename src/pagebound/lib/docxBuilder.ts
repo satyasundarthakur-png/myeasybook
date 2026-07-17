@@ -12,10 +12,25 @@ import type { BookState } from '../types/book';
 import { resolveCoverImageDataUrl, resolveBackCoverImageDataUrl, mimeTypeFromDataUrl } from './coverGenerator';
 import { buildExportUnits } from './exportUnits';
 
+// Traditional book typesetting: first-line indent instead of a gap between
+// paragraphs, with the first paragraph of each section un-indented — the
+// same convention epubBuilder.ts and printBuilder.ts already use via CSS
+// (text-indent: 1.2em; p:first-of-type { text-indent: 0 }). DOCX previously
+// had neither: paragraphs used a spacing-after gap and no indent at all,
+// which reads as block/business-document formatting rather than a
+// typeset book page — confirmed directly in a real exported file's XML
+// (every paragraph had <w:spacing w:after="200"/> and no <w:ind> at all).
 function bodyParagraphs(text: string): Paragraph[] {
   return text
     .split(/\n\n+/)
-    .map((p) => new Paragraph({ children: [new TextRun(p.trim())], spacing: { after: 200 } }));
+    .map(
+      (p, i) =>
+        new Paragraph({
+          children: [new TextRun(p.trim())],
+          indent: i === 0 ? undefined : { firstLine: 432 }, // 0.3in, matching the ~1.2em used elsewhere
+          spacing: { after: 0 },
+        })
+    );
 }
 
 function dataUrlToUint8Array(dataUrl: string): Uint8Array {

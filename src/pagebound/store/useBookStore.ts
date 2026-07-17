@@ -162,7 +162,7 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
 
       set({ processingMessage: 'Detecting chapters…' });
       const config = getActiveAiConfig(get());
-      const { chapters } = await detectChapters(cleanedText, config.apiKey ? config : null);
+      const { chapters } = await detectChapters(cleanedText, config.apiKey ? config : null, parsed.html);
       const groups = groupChapters(chapters);
 
       const guessedTitle = file.name.replace(/\.(docx|pdf|txt)$/i, '').replace(/[_-]+/g, ' ');

@@ -7,11 +7,84 @@ function wordCount(text: string): number {
   return text.trim().split(/\s+/).filter(Boolean).length;
 }
 
+const HTML_ENTITIES: Record<string, string> = {
+  amp: '&', lt: '<', gt: '>', quot: '"', 39: "'", apos: "'", nbsp: ' ',
+};
+
+function decodeHtmlEntities(s: string): string {
+  return s.replace(/&(#?\w+);/g, (full, code) => HTML_ENTITIES[code.replace('#', '')] ?? full);
+}
+
+function stripTags(html: string): string {
+  return decodeHtmlEntities(html.replace(/<[^>]+>/g, '')).trim();
+}
+
+/** Converts a fragment of mammoth-generated HTML (a run of <p>/<h*> elements)
+ * into plain text with the same blank-line-per-paragraph convention the
+ * rest of the pipeline (and cleanManuscriptText) already expects. */
+function htmlFragmentToText(html: string): string {
+  return html
+    .split(/<p[^>]*>|<\/p>/gi)
+    .map((chunk) => stripTags(chunk))
+    .filter(Boolean)
+    .join('\n\n');
+}
+
+// Section headings with zero narrative content of their own — always just
+// a navigational list — so they're excluded even though they're detected as
+// genuine Heading-1 sections. Introduction/Index are NOT excluded here:
+// unlike a table of contents, they contain real prose/data a user might
+// want kept, and there's no dedicated place to route it to yet, so keeping
+// it visible as an odd-but-present chapter beats silently dropping it.
+const NON_CHAPTER_HEADINGS = /^(table of contents|contents)$/i;
+
+/**
+ * Attempt 1: use the actual Heading-1-styled sections from the source Word
+ * document, when available. Mammoth's HTML conversion (unlike its plain-text
+ * extraction) preserves heading tags, so a manuscript that already uses
+ * Word's "Heading 1" style for chapter titles — a completely standard
+ * authoring practice, and exactly what Pagebound's own DOCX export produces
+ * — can be split using its real chapter titles instead of falling through
+ * to blank-gap detection and generic "Chapter N" placeholders. Confirmed
+ * this was previously never attempted: parseUploadedFile extracted this
+ * HTML but detectChapters was only ever given the plain-text version.
+ */
+function splitByHtmlHeadings(html: string): Chapter[] | null {
+  if (!html) return null;
+  const headingRe = /<h1[^>]*>(.*?)<\/h1>/gis;
+  const matches = [...html.matchAll(headingRe)];
+  if (matches.length < 2) return null;
+
+  const chapters: Chapter[] = [];
+  for (let i = 0; i < matches.length; i++) {
+    const title = stripTags(matches[i][1]);
+    if (!title || NON_CHAPTER_HEADINGS.test(title)) continue;
+
+    const start = matches[i].index! + matches[i][0].length;
+    const end = i + 1 < matches.length ? matches[i + 1].index! : html.length;
+    const body = htmlFragmentToText(html.slice(start, end));
+    if (!body) continue;
+
+    chapters.push({
+      id: makeId(),
+      number: chapters.length + 1,
+      title,
+      originalText: body,
+      polishedText: null,
+      ocrFixedText: null,
+      ocrStatus: 'raw',
+      status: 'raw',
+      wordCount: wordCount(body),
+    });
+  }
+  return chapters.length >= 2 ? chapters : null;
+}
+
 const CHAPTER_HEADING_RE =
   /^\s*(chapter|part|section|adhyaya)\s+([0-9]+|[ivxlcdm]+|one|two|three|four|five|six|seven|eight|nine|ten|eleven|twelve|thirteen|fourteen|fifteen|sixteen|seventeen|eighteen|nineteen|twenty)\b[:.\-\s]*(.*)$/i;
 
 /**
- * Attempt 1: split on lines that look like "Chapter 1: Title" / "CHAPTER ONE".
+ * Attempt 2: split on lines that look like "Chapter 1: Title" / "CHAPTER ONE".
  */
 function splitByHeadingPattern(rawText: string): Chapter[] | null {
   const lines = rawText.split(/\r?\n/);
@@ -49,7 +122,7 @@ function splitByHeadingPattern(rawText: string): Chapter[] | null {
 }
 
 /**
- * Attempt 2: detect genuine Adhyaya (chapter) boundaries in Odia/Sanskrit
+ * Attempt 3: detect genuine Adhyaya (chapter) boundaries in Odia/Sanskrit
  * texts via the traditional closing-colophon convention — a line naming
  * the chapter and declaring it complete, e.g. "'Karmayoga' named third
  * chapter completed" (ତୃତୀୟ ଅଧ୍ୟାୟ ସମାପ୍ତ) — rather than mechanical blank-line
@@ -169,7 +242,7 @@ function splitByAdhyayaMarkers(rawText: string): Chapter[] | null {
 }
 
 /**
- * Attempt 3: split on 3+ consecutive blank lines or a "***"/"---" scene-break
+ * Attempt 4: split on 3+ consecutive blank lines or a "***"/"---" scene-break
  * style marker, treating each block as a chapter. Used when no explicit
  * "Chapter N" headings or Adhyaya colophons exist but the manuscript still
  * has clear breaks.
@@ -196,7 +269,7 @@ function splitByBlankGaps(rawText: string): Chapter[] | null {
 }
 
 /**
- * Attempt 3 (fallback, requires an API key): ask Groq to propose chapter
+ * Attempt 5 (fallback, requires an API key): ask Groq to propose chapter
  * break points for manuscripts with no structural markers at all. Returns
  * an array of 0-indexed character offsets, one per chapter start.
  */
@@ -253,8 +326,12 @@ ${outline}`;
 
 export async function detectChapters(
   rawText: string,
-  aiFallback: AiProviderConfig | null
-): Promise<{ chapters: Chapter[]; method: 'headings' | 'adhyaya-markers' | 'blank-gaps' | 'ai' | 'single' }> {
+  aiFallback: AiProviderConfig | null,
+  html: string = ''
+): Promise<{ chapters: Chapter[]; method: 'html-headings' | 'headings' | 'adhyaya-markers' | 'blank-gaps' | 'ai' | 'single' }> {
+  const byHtmlHeadings = splitByHtmlHeadings(html);
+  if (byHtmlHeadings) return { chapters: byHtmlHeadings, method: 'html-headings' };
+
   const byHeading = splitByHeadingPattern(rawText);
   if (byHeading) return { chapters: byHeading, method: 'headings' };
 
