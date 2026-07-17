@@ -34,10 +34,10 @@ export default function PolishStage() {
   return (
     <div className="flex h-full">
       {/* Sidebar: owns its own scroll, grouped for large manuscripts */}
-      <div className="w-72 shrink-0 border-r border-ink-faint flex flex-col h-full">
-        <div className="p-4 border-b border-ink-faint shrink-0">
+      <div className="w-72 shrink-0 border-r border-paper-dim flex flex-col h-full bg-paper">
+        <div className="p-4 border-b border-paper-dim shrink-0">
           <div className="flex items-center justify-between mb-2">
-            <p className="font-mono text-xs text-paper/50">
+            <p className="font-mono text-xs text-ink/50">
               {polishProgress
                 ? `${polishProgress.succeeded}/${polishProgress.total} polished${polishProgress.failed ? ` · ${polishProgress.failed} failed` : ''}`
                 : `${chapters.filter((c) => c.status === 'polished').length}/${chapters.length} polished`}
@@ -52,15 +52,15 @@ export default function PolishStage() {
                   setError((e as Error).message);
                 }
               }}
-              className="flex items-center gap-1.5 text-xs bg-brass hover:bg-brass-bright text-ink font-semibold px-3 py-1.5 rounded-sm disabled:opacity-30"
+              className="flex items-center gap-1.5 text-xs bg-crimson hover:bg-crimson-bright text-paper-bright font-semibold px-3 py-1.5 disabled:opacity-30"
             >
               <Sparkles size={13} /> Polish all
             </button>
           </div>
           {percent !== null && (
-            <div className="w-full h-1.5 bg-ink-faint rounded-full overflow-hidden">
+            <div className="w-full h-1 bg-paper-dim overflow-hidden">
               <div
-                className="h-full bg-brass-bright transition-all duration-300"
+                className="h-full bg-crimson transition-all duration-300"
                 style={{ width: `${percent}%` }}
               />
             </div>
@@ -80,11 +80,11 @@ export default function PolishStage() {
                 {isGrouped && (
                   <button
                     onClick={() => setExpandedGroupId(expanded ? null : group.id)}
-                    className="w-full flex items-center gap-2 text-left px-2 py-2 rounded-sm text-sm text-paper/70 hover:bg-ink-soft/50"
+                    className="w-full flex items-center gap-2 text-left px-2 py-2 text-sm text-ink/70 hover:bg-paper-dim/40"
                   >
-                    {expanded ? <ChevronDown size={14} className="text-brass shrink-0" /> : <ChevronRight size={14} className="text-brass shrink-0" />}
+                    {expanded ? <ChevronDown size={14} className="text-crimson shrink-0" /> : <ChevronRight size={14} className="text-crimson shrink-0" />}
                     <span className="truncate flex-1">{group.title}</span>
-                    <span className="font-mono text-[10px] text-paper/40 shrink-0">
+                    <span className="font-mono text-[10px] text-ink/40 shrink-0">
                       {polishedCount}/{groupChapters.length}
                     </span>
                   </button>
@@ -95,13 +95,13 @@ export default function PolishStage() {
                       <button
                         key={c.id}
                         onClick={() => setActiveId(c.id)}
-                        className={`w-full flex items-center gap-2 text-left px-3 py-1.5 rounded-sm text-sm ${
-                          c.id === active?.id ? 'bg-ink-soft text-paper-bright' : 'text-paper/60 hover:bg-ink-soft/50'
+                        className={`w-full flex items-center gap-2 text-left px-3 py-1.5 text-sm ${
+                          c.id === active?.id ? 'bg-paper-dim/60 text-ink' : 'text-ink/60 hover:bg-paper-dim/30'
                         }`}
                       >
-                        {c.status === 'polished' && <Check size={13} className="text-moss-bright shrink-0" />}
-                        {c.status === 'polishing' && <Loader2 size={13} className="animate-spin text-brass shrink-0" />}
-                        {c.status === 'error' && <AlertCircle size={13} className="text-leather-bright shrink-0" />}
+                        {c.status === 'polished' && <Check size={13} className="text-moss shrink-0" />}
+                        {c.status === 'polishing' && <Loader2 size={13} className="animate-spin text-crimson shrink-0" />}
+                        {c.status === 'error' && <AlertCircle size={13} className="text-rust shrink-0" />}
                         {c.status === 'raw' && <span className="w-[13px] shrink-0" />}
                         <span className="truncate">
                           {c.number}. {c.title}
@@ -117,34 +117,34 @@ export default function PolishStage() {
       </div>
 
       {/* Main content: header + panels (each owns its own scroll) + pinned footer */}
-      <div className="flex-1 flex flex-col h-full min-w-0">
+      <div className="flex-1 flex flex-col h-full min-w-0 bg-paper-bright">
         <div className="flex-1 overflow-hidden flex flex-col px-8 py-6 min-h-0">
           {!groqApiKey && (
-            <div className="mb-4 border border-brass/40 bg-brass/10 text-brass-bright text-sm font-body px-4 py-3 rounded-sm shrink-0">
+            <div className="mb-4 border border-brass/40 bg-brass/5 text-brass-dim text-sm font-body px-4 py-3 shrink-0">
               Add a Groq API key (top right) to run AI polishing. You can still skip ahead and export the
               manuscript as-is.
             </div>
           )}
-          {error && <p className="mb-4 text-sm text-leather-bright shrink-0">{error}</p>}
+          {error && <p className="mb-4 text-sm text-rust shrink-0">{error}</p>}
 
           {active && (
             <div className="flex-1 flex flex-col min-h-0">
               <div className="flex items-center justify-between mb-4 shrink-0">
-                <h2 className="font-display text-2xl text-paper-bright truncate">
+                <h2 className="font-display italic text-2xl text-ink truncate">
                   {active.number}. {active.title}
                 </h2>
                 <div className="flex items-center gap-1 shrink-0 ml-4">
                   <button
                     onClick={() => setLayout('side-by-side')}
                     title="Side by side"
-                    className={`p-1.5 rounded-sm border ${layout === 'side-by-side' ? 'border-brass text-brass-bright' : 'border-ink-faint text-paper/40'}`}
+                    className={`p-1.5 border ${layout === 'side-by-side' ? 'border-crimson text-crimson' : 'border-paper-dim text-ink/40'}`}
                   >
                     <Columns2 size={15} />
                   </button>
                   <button
                     onClick={() => setLayout('stacked')}
                     title="Stacked"
-                    className={`p-1.5 rounded-sm border ${layout === 'stacked' ? 'border-brass text-brass-bright' : 'border-ink-faint text-paper/40'}`}
+                    className={`p-1.5 border ${layout === 'stacked' ? 'border-crimson text-crimson' : 'border-paper-dim text-ink/40'}`}
                   >
                     <Rows2 size={15} />
                   </button>
@@ -157,14 +157,14 @@ export default function PolishStage() {
                 }`}
               >
                 <div className="flex flex-col min-h-0">
-                  <p className="font-mono text-xs text-paper/40 mb-2 shrink-0">ORIGINAL</p>
-                  <div className="flex-1 min-h-0 bg-ink-soft border border-ink-faint rounded-sm p-4 overflow-y-auto whitespace-pre-wrap font-body text-sm text-paper/70 leading-relaxed">
+                  <p className="font-mono text-xs text-ink/40 mb-2 shrink-0 tracking-wide">ORIGINAL</p>
+                  <div className="flex-1 min-h-0 bg-paper border border-paper-dim p-4 overflow-y-auto whitespace-pre-wrap font-display text-[15px] text-ink/75 leading-relaxed">
                     {active.originalText}
                   </div>
                 </div>
                 <div className="flex flex-col min-h-0">
                   <div className="flex items-center justify-between mb-2 shrink-0">
-                    <p className="font-mono text-xs text-paper/40">POLISHED (editable)</p>
+                    <p className="font-mono text-xs text-ink/40 tracking-wide">POLISHED (EDITABLE)</p>
                     <button
                       disabled={!groqApiKey || active.status === 'polishing'}
                       onClick={async () => {
@@ -175,16 +175,21 @@ export default function PolishStage() {
                           setError((e as Error).message);
                         }
                       }}
-                      className="flex items-center gap-1 text-xs text-brass-bright hover:text-brass disabled:opacity-30"
+                      className="flex items-center gap-1 text-xs text-crimson hover:text-crimson-bright disabled:opacity-30"
                     >
-                      <Sparkles size={12} /> {active.status === 'polishing' ? 'Polishing…' : 'Re-polish'}
+                      <Sparkles size={12} />
+                      {active.status === 'polishing'
+                        ? 'Polishing…'
+                        : active.status === 'polished' || active.status === 'error'
+                          ? 'Re-polish'
+                          : 'Polish this chapter'}
                     </button>
                   </div>
                   <textarea
                     value={active.polishedText ?? ''}
-                    placeholder={active.status === 'polished' ? '' : 'Not polished yet — click "Polish all" or "Re-polish".'}
+                    placeholder={active.status === 'polished' ? '' : 'Not polished yet — click "Polish all" or "Polish this chapter".'}
                     onChange={(e) => updateChapterText(active.id, e.target.value)}
-                    className="flex-1 min-h-0 w-full bg-ink-soft border border-ink-faint rounded-sm p-4 resize-none font-body text-sm text-paper-bright leading-relaxed"
+                    className="flex-1 min-h-0 w-full bg-paper border border-paper-dim p-4 resize-none font-display text-[15px] text-ink leading-relaxed"
                   />
                 </div>
               </div>
@@ -192,10 +197,10 @@ export default function PolishStage() {
           )}
         </div>
 
-        <div className="shrink-0 border-t border-ink-faint px-8 py-4">
+        <div className="shrink-0 border-t border-paper-dim px-8 py-4">
           <button
             onClick={() => setStage('front-matter')}
-            className="flex items-center gap-2 bg-brass hover:bg-brass-bright text-ink font-semibold px-5 py-2.5 rounded-sm"
+            className="flex items-center gap-2 bg-crimson hover:bg-crimson-bright text-paper-bright font-semibold px-5 py-2.5"
           >
             Continue to introduction <ArrowRight size={16} />
           </button>

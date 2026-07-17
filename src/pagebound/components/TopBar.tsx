@@ -20,30 +20,30 @@ export default function TopBar() {
     : null;
 
   return (
-    <header className="flex items-center gap-4 px-6 py-4 border-b border-ink-faint bg-ink-soft">
+    <header className="flex items-center gap-4 px-6 py-4 border-b border-paper-dim bg-paper-bright">
       <input
         value={meta.title}
         onChange={(e) => setMeta({ title: e.target.value })}
         placeholder="Book title"
-        className="bg-transparent font-display text-lg text-paper-bright placeholder:text-paper/30 border-b border-transparent focus:border-brass px-1 py-0.5 w-64"
+        className="bg-transparent font-display italic text-lg text-ink placeholder:text-ink/25 border-b border-transparent focus:border-crimson px-1 py-0.5 w-64"
       />
       <input
         value={meta.author}
         onChange={(e) => setMeta({ author: e.target.value })}
         placeholder="Author"
-        className="bg-transparent font-body text-sm text-paper/70 placeholder:text-paper/30 border-b border-transparent focus:border-brass px-1 py-0.5 w-48"
+        className="bg-transparent font-body text-sm text-ink/60 placeholder:text-ink/25 border-b border-transparent focus:border-crimson px-1 py-0.5 w-48"
       />
 
       <div className="flex-1" />
 
       {isProcessing && (
-        <div className="flex items-center gap-3 text-brass-bright text-sm font-mono">
+        <div className="flex items-center gap-3 text-crimson text-sm font-mono">
           <Loader2 size={14} className="animate-spin shrink-0" />
           <span className="whitespace-nowrap">{processingMessage}</span>
           {percent !== null && (
-            <div className="w-32 h-1.5 bg-ink-faint rounded-full overflow-hidden shrink-0">
+            <div className="w-32 h-1 bg-paper-dim overflow-hidden shrink-0">
               <div
-                className="h-full bg-brass-bright transition-all duration-300"
+                className="h-full bg-crimson transition-all duration-300"
                 style={{ width: `${percent}%` }}
               />
             </div>
@@ -54,30 +54,30 @@ export default function TopBar() {
       <div className="relative">
         <button
           onClick={() => setSettingsOpen((v) => !v)}
-          className="flex items-center gap-2 px-3 py-2 rounded-sm border border-ink-faint text-paper/70 hover:text-brass-bright hover:border-brass text-sm"
+          className="flex items-center gap-2 px-3 py-2 border border-paper-dim text-ink/70 hover:text-crimson hover:border-crimson text-sm"
         >
           <Settings size={15} />
           Groq {groqApiKey ? '' : '(not set)'}
         </button>
         {settingsOpen && (
-          <div className="absolute right-0 mt-2 w-80 bg-ink-soft border border-ink-faint rounded-sm shadow-xl p-4 z-20">
-            <p className="font-body text-xs text-paper/60 mb-2">
+          <div className="absolute right-0 mt-2 w-80 bg-paper-bright border border-paper-dim shadow-xl p-4 z-20">
+            <p className="font-body text-xs text-ink/60 mb-2">
               Your Groq API key stays in this browser (localStorage) — it is never sent anywhere except
               api.groq.com.
             </p>
-            <label className="block text-xs font-mono text-paper/50 mb-1">API KEY</label>
+            <label className="block text-xs font-mono text-ink/50 mb-1">API KEY</label>
             <input
               type="password"
               value={keyDraft}
               onChange={(e) => setKeyDraft(e.target.value)}
               placeholder="gsk_..."
-              className="w-full bg-ink border border-ink-faint rounded-sm px-2 py-1.5 text-sm text-paper-bright mb-3"
+              className="w-full bg-paper border border-paper-dim px-2 py-1.5 text-sm text-ink mb-3"
             />
-            <label className="block text-xs font-mono text-paper/50 mb-1">MODEL</label>
+            <label className="block text-xs font-mono text-ink/50 mb-1">MODEL</label>
             <select
               value={modelDraft}
               onChange={(e) => setModelDraft(e.target.value)}
-              className="w-full bg-ink border border-ink-faint rounded-sm px-2 py-1.5 text-sm text-paper-bright mb-3"
+              className="w-full bg-paper border border-paper-dim px-2 py-1.5 text-sm text-ink mb-3"
             >
               {MODELS.map((m) => (
                 <option key={m} value={m}>
@@ -90,7 +90,7 @@ export default function TopBar() {
                 setGroqSettings(keyDraft, modelDraft);
                 setSettingsOpen(false);
               }}
-              className="w-full bg-brass hover:bg-brass-bright text-ink font-semibold text-sm rounded-sm py-2"
+              className="w-full bg-crimson hover:bg-crimson-bright text-paper-bright font-semibold text-sm py-2"
             >
               Save
             </button>

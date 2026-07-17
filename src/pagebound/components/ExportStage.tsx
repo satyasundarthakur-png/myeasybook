@@ -61,63 +61,64 @@ export default function ExportStage() {
 
   return (
     <div className="h-full overflow-y-auto max-w-2xl mx-auto py-12 px-6">
-      <h1 className="font-display text-3xl text-paper-bright mb-2">Publish</h1>
-      <p className="font-body text-paper/60 mb-8">
+      <p className="font-mono text-[11px] tracking-[0.2em] text-crimson uppercase mb-3">No. 07 — Publication</p>
+      <h1 className="font-display italic text-3xl text-ink mb-2">Publish</h1>
+      <p className="font-body text-ink/60 mb-8">
         Your book is ready. Export in the format you need for your platform of choice.
       </p>
 
-      <div className="bg-ink-soft border border-ink-faint rounded-sm p-5 mb-8 font-mono text-sm text-paper/60 grid grid-cols-2 gap-y-1">
+      <div className="bg-paper border border-paper-dim p-5 mb-8 font-mono text-sm text-ink/60 grid grid-cols-2 gap-y-1">
         <span>Chapters</span>
-        <span className="text-paper-bright text-right">{book.chapters.length}</span>
+        <span className="text-ink text-right">{book.chapters.length}</span>
         <span>Total words</span>
-        <span className="text-paper-bright text-right">{totalWords.toLocaleString()}</span>
+        <span className="text-ink text-right">{totalWords.toLocaleString()}</span>
         <span>Introduction</span>
-        <span className="text-paper-bright text-right">{book.introduction ? 'Yes' : 'No'}</span>
+        <span className="text-ink text-right">{book.introduction ? 'Yes' : 'No'}</span>
         <span>Index entries</span>
-        <span className="text-paper-bright text-right">{book.indexEntries.length}</span>
+        <span className="text-ink text-right">{book.indexEntries.length}</span>
       </div>
 
-      {error && <p className="text-sm text-leather-bright mb-4">{error}</p>}
+      {error && <p className="text-sm text-rust mb-4">{error}</p>}
 
       <div className="grid gap-3">
         <button
           onClick={handleEpub}
           disabled={busy === 'epub'}
-          className="flex items-center gap-3 bg-ink-soft hover:bg-ink-faint border border-ink-faint rounded-sm px-5 py-4 text-left"
+          className="flex items-center gap-3 bg-paper hover:bg-paper-dim/50 border border-paper-dim px-5 py-4 text-left"
         >
-          <BookMarked size={20} className="text-brass-bright shrink-0" />
+          <BookMarked size={20} className="text-crimson shrink-0" />
           <span>
-            <span className="block font-body text-paper-bright">Export EPUB</span>
-            <span className="block font-mono text-xs text-paper/40">
+            <span className="block font-body text-ink">Export EPUB</span>
+            <span className="block font-mono text-xs text-ink/40">
               For Kindle/KDP, Apple Books, Kobo — includes cover, TOC, and index
             </span>
           </span>
-          <FileDown size={16} className="ml-auto text-paper/40" />
+          <FileDown size={16} className="ml-auto text-ink/40" />
         </button>
 
         <button
           onClick={handleDocx}
           disabled={busy === 'docx'}
-          className="flex items-center gap-3 bg-ink-soft hover:bg-ink-faint border border-ink-faint rounded-sm px-5 py-4 text-left"
+          className="flex items-center gap-3 bg-paper hover:bg-paper-dim/50 border border-paper-dim px-5 py-4 text-left"
         >
-          <FileType size={20} className="text-brass-bright shrink-0" />
+          <FileType size={20} className="text-crimson shrink-0" />
           <span>
-            <span className="block font-body text-paper-bright">Export DOCX</span>
-            <span className="block font-mono text-xs text-paper/40">
+            <span className="block font-body text-ink">Export DOCX</span>
+            <span className="block font-mono text-xs text-ink/40">
               Editable Word document for further editing or print layout software
             </span>
           </span>
-          <FileDown size={16} className="ml-auto text-paper/40" />
+          <FileDown size={16} className="ml-auto text-ink/40" />
         </button>
 
         <button
           onClick={handlePrint}
-          className="flex items-center gap-3 bg-ink-soft hover:bg-ink-faint border border-ink-faint rounded-sm px-5 py-4 text-left"
+          className="flex items-center gap-3 bg-paper hover:bg-paper-dim/50 border border-paper-dim px-5 py-4 text-left"
         >
-          <Printer size={20} className="text-brass-bright shrink-0" />
+          <Printer size={20} className="text-crimson shrink-0" />
           <span>
-            <span className="block font-body text-paper-bright">Print-ready PDF</span>
-            <span className="block font-mono text-xs text-paper/40">
+            <span className="block font-body text-ink">Print-ready PDF</span>
+            <span className="block font-mono text-xs text-ink/40">
               Opens a paginated 6×9in layout — use your browser's "Print to PDF"
             </span>
           </span>
