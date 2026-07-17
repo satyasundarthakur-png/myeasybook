@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import type { AiProviderId } from '../lib/aiTypes';
 import type { BookState, Stage } from '../types/book';
 import { parseUploadedFile } from '../lib/docParser';
 import { detectChapters } from '../lib/chapterDetector';
@@ -11,7 +12,9 @@ import { sleep } from '../lib/shared';
 interface BookActions {
   setStage: (s: Stage) => void;
   setMeta: (patch: Partial<BookState['meta']>) => void;
+  setAiProvider: (provider: AiProviderId) => void;
   setGroqSettings: (apiKey: string, model: string) => void;
+  setGeminiSettings: (apiKey: string, model: string) => void;
   setCover: (patch: Partial<BookState['cover']>) => void;
   uploadFile: (file: File) => Promise<void>;
   fixSingleChapterOcr: (id: string) => Promise<void>;
@@ -25,11 +28,16 @@ interface BookActions {
   reset: () => void;
 }
 
-const STORAGE_KEY = 'pagebound-groq-settings';
+// Kept as its own key (not folded into a combined settings object) so
+// existing saved Groq keys from before Gemini support was added keep
+// working without any migration step.
+const GROQ_STORAGE_KEY = 'pagebound-groq-settings';
+const GEMINI_STORAGE_KEY = 'pagebound-gemini-settings';
+const PROVIDER_STORAGE_KEY = 'pagebound-ai-provider';
 
 function loadGroqSettings(): { apiKey: string; model: string } {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(GROQ_STORAGE_KEY);
     if (raw) return JSON.parse(raw);
   } catch {
     // ignore
@@ -39,13 +47,51 @@ function loadGroqSettings(): { apiKey: string; model: string } {
 
 function saveGroqSettings(apiKey: string, model: string) {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({ apiKey, model }));
+    localStorage.setItem(GROQ_STORAGE_KEY, JSON.stringify({ apiKey, model }));
+  } catch {
+    // ignore
+  }
+}
+
+function loadGeminiSettings(): { apiKey: string; model: string } {
+  try {
+    const raw = localStorage.getItem(GEMINI_STORAGE_KEY);
+    if (raw) return JSON.parse(raw);
+  } catch {
+    // ignore
+  }
+  return { apiKey: '', model: 'gemini-2.5-flash-lite' };
+}
+
+function saveGeminiSettings(apiKey: string, model: string) {
+  try {
+    localStorage.setItem(GEMINI_STORAGE_KEY, JSON.stringify({ apiKey, model }));
+  } catch {
+    // ignore
+  }
+}
+
+function loadAiProvider(): AiProviderId {
+  try {
+    const raw = localStorage.getItem(PROVIDER_STORAGE_KEY);
+    if (raw === 'gemini' || raw === 'groq') return raw;
+  } catch {
+    // ignore
+  }
+  return 'groq'; // Groq is the default/primary provider
+}
+
+function saveAiProvider(provider: AiProviderId) {
+  try {
+    localStorage.setItem(PROVIDER_STORAGE_KEY, provider);
   } catch {
     // ignore
   }
 }
 
 const initialGroq = loadGroqSettings();
+const initialGemini = loadGeminiSettings();
+const initialProvider = loadAiProvider();
 
 const initialState: BookState = {
   stage: 'upload',
@@ -55,8 +101,11 @@ const initialState: BookState = {
   introduction: null,
   indexEntries: [],
   cover: { title: '', subtitle: '', author: '', palette: 'leather', layout: 'classic', customImage: null },
+  aiProvider: initialProvider,
   groqApiKey: initialGroq.apiKey,
   groqModel: initialGroq.model,
+  geminiApiKey: initialGemini.apiKey,
+  geminiModel: initialGemini.model,
   isProcessing: false,
   processingMessage: '',
   polishProgress: null,
@@ -77,9 +126,19 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
       cover: { ...s.cover, title: patch.title ?? s.cover.title, author: patch.author ?? s.cover.author },
     })),
 
+  setAiProvider: (provider) => {
+    saveAiProvider(provider);
+    set({ aiProvider: provider });
+  },
+
   setGroqSettings: (apiKey, model) => {
     saveGroqSettings(apiKey, model);
     set({ groqApiKey: apiKey, groqModel: model });
+  },
+
+  setGeminiSettings: (apiKey, model) => {
+    saveGeminiSettings(apiKey, model);
+    set({ geminiApiKey: apiKey, geminiModel: model });
   },
 
   setCover: (patch) => set((s) => ({ cover: { ...s.cover, ...patch } })),
@@ -100,8 +159,8 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
       }
 
       set({ processingMessage: 'Detecting chapters…' });
-      const { apiKey, model } = { apiKey: get().groqApiKey, model: get().groqModel };
-      const { chapters } = await detectChapters(cleanedText, apiKey ? { apiKey, model } : null);
+      const config = getActiveAiConfig(get());
+      const { chapters } = await detectChapters(cleanedText, config.apiKey ? config : null);
       const groups = groupChapters(chapters);
 
       const guessedTitle = file.name.replace(/\.(docx|pdf|txt)$/i, '').replace(/[_-]+/g, ' ');
@@ -122,7 +181,7 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
   },
 
   fixSingleChapterOcr: async (id: string) => {
-    const { chapters, meta, groqApiKey, groqModel } = get();
+    const { chapters, meta } = get();
     const chapter = chapters.find((c) => c.id === id);
     if (!chapter) return;
 
@@ -134,8 +193,7 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
       const fixedText = await fixChapterOcrErrors(
         chapter.originalText,
         { bookTitle: meta.title, bookAuthor: meta.author },
-        groqApiKey,
-        groqModel
+        getActiveAiConfig(get())
       );
       set((s) => ({
         chapters: s.chapters.map((c) =>
@@ -214,7 +272,7 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
   },
 
   polishSingleChapter: async (id: string) => {
-    const { chapters, groqApiKey, groqModel } = get();
+    const { chapters } = get();
     const chapter = chapters.find((c) => c.id === id);
     if (!chapter) return;
 
@@ -224,7 +282,7 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
 
     try {
       const sourceText = chapter.ocrFixedText ?? chapter.originalText;
-      const polished = await polishChapterText(sourceText, groqApiKey, groqModel);
+      const polished = await polishChapterText(sourceText, getActiveAiConfig(get()));
       set((s) => ({
         chapters: s.chapters.map((c) =>
           c.id === id ? { ...c, polishedText: polished, status: 'polished' } : c
@@ -323,10 +381,10 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
     })),
 
   generateIntro: async () => {
-    const { chapters, meta, groqApiKey, groqModel } = get();
+    const { chapters, meta } = get();
     set({ isProcessing: true, processingMessage: 'Writing introduction…' });
     try {
-      const intro = await generateIntroduction(chapters, meta.title || 'this book', groqApiKey, groqModel);
+      const intro = await generateIntroduction(chapters, meta.title || 'this book', getActiveAiConfig(get()));
       set({ introduction: intro, isProcessing: false, processingMessage: '' });
     } catch (err) {
       set({ isProcessing: false, processingMessage: '' });
@@ -335,7 +393,7 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
   },
 
   buildIndex: async () => {
-    const { chapters, groqApiKey, groqModel } = get();
+    const { chapters } = get();
     const total = chapters.length;
     set({
       isProcessing: true,
@@ -343,7 +401,7 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
       indexProgress: { total, processed: 0 },
     });
     try {
-      const entries = await extractIndexEntries(chapters, groqApiKey, groqModel, (processed, totalBatches) => {
+      const entries = await extractIndexEntries(chapters, getActiveAiConfig(get()), (processed, totalBatches) => {
         const percent = totalBatches > 0 ? Math.round((processed / totalBatches) * 100) : 0;
         set({
           processingMessage: `Extracting index terms… ${percent}% (${processed}/${totalBatches} batches)`,
@@ -360,7 +418,29 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
   reset: () =>
     set({
       ...initialState,
+      aiProvider: get().aiProvider,
       groqApiKey: get().groqApiKey,
       groqModel: get().groqModel,
+      geminiApiKey: get().geminiApiKey,
+      geminiModel: get().geminiModel,
     }),
 }));
+
+/** Resolves the active provider's config from whichever fields are actually
+ * populated — every AI call site uses this instead of picking groq/gemini
+ * fields directly, so adding a third provider later only needs updating
+ * this one function. */
+function getActiveAiConfig(state: BookState): { provider: AiProviderId; apiKey: string; model: string } {
+  if (state.aiProvider === 'gemini') {
+    return { provider: 'gemini', apiKey: state.geminiApiKey, model: state.geminiModel };
+  }
+  return { provider: 'groq', apiKey: state.groqApiKey, model: state.groqModel };
+}
+
+/** True if the currently-selected provider has an API key saved. Every
+ * stage's "add a key to unlock this" hint uses this instead of checking
+ * groqApiKey directly, which would show a false warning when Gemini is
+ * the active provider (and vice versa). */
+export function useActiveAiKeyPresent(): boolean {
+  return useBookStore((s) => Boolean(getActiveAiConfig(s).apiKey));
+}

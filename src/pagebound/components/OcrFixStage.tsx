@@ -9,12 +9,13 @@ import {
   ChevronRight,
   RotateCw,
 } from 'lucide-react';
-import { useBookStore } from '../store/useBookStore';
+import { useBookStore, useActiveAiKeyPresent } from '../store/useBookStore';
 import type { Chapter } from '../types/book';
 
 export default function OcrFixStage() {
-  const { chapters, groups, fixAllChaptersOcr, fixSingleChapterOcr, updateChapterOcrFixedText, setStage, groqApiKey, ocrFixProgress, lastBatchError } =
+  const { chapters, groups, fixAllChaptersOcr, fixSingleChapterOcr, updateChapterOcrFixedText, setStage, ocrFixProgress, lastBatchError } =
     useBookStore();
+  const hasAiKey = useActiveAiKeyPresent();
   const [activeId, setActiveId] = useState(chapters[0]?.id ?? null);
   const active = chapters.find((c) => c.id === activeId) ?? chapters[0];
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +42,7 @@ export default function OcrFixStage() {
                 : `${chapters.filter((c) => c.ocrStatus === 'fixed').length}/${chapters.length} fixed`}
             </p>
             <button
-              disabled={!groqApiKey}
+              disabled={!hasAiKey}
               onClick={async () => {
                 setError(null);
                 try {
@@ -104,7 +105,7 @@ export default function OcrFixStage() {
                         </button>
                         {c.ocrStatus !== 'fixing' && (
                           <button
-                            disabled={!groqApiKey}
+                            disabled={!hasAiKey}
                             title={c.ocrStatus === 'fixed' ? 'Re-fix this chapter' : 'Fix this chapter'}
                             onClick={async (e) => {
                               e.stopPropagation();
@@ -139,9 +140,9 @@ export default function OcrFixStage() {
             breaks — using surrounding context. It does not rewrite or improve your prose; that's what Polish does
             next. If your source text is already clean, skip straight to Polish.
           </div>
-          {!groqApiKey && (
+          {!hasAiKey && (
             <div className="mb-4 border border-brass/40 bg-brass/5 text-brass-dim text-sm font-body px-4 py-3 shrink-0">
-              Add a Groq API key (AI Settings, bottom of the sidebar) to run this step.
+              Add an API key (AI Settings, bottom of the sidebar) to run this step.
             </div>
           )}
           {error && <p className="mb-4 text-sm text-rust shrink-0">{error}</p>}
@@ -168,7 +169,7 @@ export default function OcrFixStage() {
                   <div className="flex items-center justify-between mb-2 shrink-0">
                     <p className="font-mono text-xs text-ink/40 tracking-wide">CORRECTED (EDITABLE)</p>
                     <button
-                      disabled={!groqApiKey || active.ocrStatus === 'fixing'}
+                      disabled={!hasAiKey || active.ocrStatus === 'fixing'}
                       onClick={async () => {
                         setError(null);
                         try {

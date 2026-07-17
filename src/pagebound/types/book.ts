@@ -74,8 +74,11 @@ export interface BookState {
   introduction: string | null;
   indexEntries: IndexEntry[];
   cover: CoverConfig;
+  aiProvider: 'groq' | 'gemini';
   groqApiKey: string;
   groqModel: string;
+  geminiApiKey: string;
+  geminiModel: string;
   isProcessing: boolean;
   processingMessage: string;
   polishProgress: PolishProgress | null;

@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { ListTree, ArrowRight, Loader2, X } from 'lucide-react';
-import { useBookStore } from '../store/useBookStore';
+import { useBookStore, useActiveAiKeyPresent } from '../store/useBookStore';
 
 export default function IndexStage() {
-  const { indexEntries, buildIndex, setStage, groqApiKey, isProcessing } = useBookStore();
+  const { indexEntries, buildIndex, setStage, isProcessing } = useBookStore();
+  const hasAiKey = useActiveAiKeyPresent();
   const [error, setError] = useState<string | null>(null);
 
   const removeEntry = (term: string) => {
@@ -19,7 +20,7 @@ export default function IndexStage() {
       </p>
 
       <button
-        disabled={!groqApiKey || isProcessing}
+        disabled={!hasAiKey || isProcessing}
         onClick={async () => {
           setError(null);
           try {
@@ -34,8 +35,8 @@ export default function IndexStage() {
         {indexEntries.length > 0 ? 'Rebuild index' : 'Build index'}
       </button>
 
-      {!groqApiKey && (
-        <p className="text-sm text-brass-dim mb-4">Add a Groq API key (AI Settings, bottom of the sidebar) to build the index.</p>
+      {!hasAiKey && (
+        <p className="text-sm text-brass-dim mb-4">Add an API key (AI Settings, bottom of the sidebar) to build the index.</p>
       )}
       {error && <p className="text-sm text-rust mb-4">{error}</p>}
 

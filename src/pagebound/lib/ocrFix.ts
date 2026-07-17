@@ -1,6 +1,6 @@
-import type { Chapter } from '../types/book';
-import { chunkText, groqComplete } from './groq';
-import { sleep } from './shared';
+import { chunkText } from './groq';
+import { aiComplete } from './aiClient';
+import type { AiProviderConfig } from './aiTypes';
 
 /**
  * OCR error correction, adapted from Dicklesworthstone/llm_aided_ocr
@@ -46,8 +46,7 @@ async function fixOcrChunk(
   chunk: string,
   prevContext: string,
   bookContext: OcrFixContext,
-  apiKey: string,
-  model: string
+  config: AiProviderConfig
 ): Promise<string> {
   const contextLine = bookContext.bookTitle
     ? `This text is from "${bookContext.bookTitle}"${bookContext.bookAuthor ? ` by ${bookContext.bookAuthor}` : ''}. Use that to judge whether an unusual word is a real proper noun or a scan error.\n\n`
@@ -61,9 +60,8 @@ ${chunk}
 
 Corrected text:`;
 
-  const result = await groqComplete(
-    apiKey,
-    model,
+  const result = await aiComplete(
+    config,
     [
       { role: 'system', content: OCR_FIX_SYSTEM },
       { role: 'user', content: prompt },
@@ -82,42 +80,17 @@ Corrected text:`;
 export async function fixChapterOcrErrors(
   text: string,
   bookContext: OcrFixContext,
-  apiKey: string,
-  model: string
+  config: AiProviderConfig
 ): Promise<string> {
   const chunks = chunkText(text, 6000);
   const fixed: string[] = [];
   let prevContext = '';
 
   for (const chunk of chunks) {
-    const result = await fixOcrChunk(chunk, prevContext, bookContext, apiKey, model);
+    const result = await fixOcrChunk(chunk, prevContext, bookContext, config);
     fixed.push(result);
     prevContext = result;
   }
 
   return fixed.join('\n\n');
-}
-
-/**
- * Runs OCR correction across all chapters sequentially (same rate-limit-
- * aware pacing as polishAllChapters), reporting progress via callback so
- * the UI can show a real percentage instead of an indefinite spinner.
- */
-export async function fixAllChaptersOcr(
-  chapters: Chapter[],
-  bookContext: OcrFixContext,
-  apiKey: string,
-  model: string,
-  onChapterDone: (chapterId: string, result: { fixedText: string } | { error: string }) => void
-): Promise<void> {
-  for (let i = 0; i < chapters.length; i++) {
-    const chapter = chapters[i];
-    try {
-      const fixedText = await fixChapterOcrErrors(chapter.originalText, bookContext, apiKey, model);
-      onChapterDone(chapter.id, { fixedText });
-    } catch (err) {
-      onChapterDone(chapter.id, { error: (err as Error).message });
-    }
-    if (i < chapters.length - 1) await sleep(150);
-  }
 }

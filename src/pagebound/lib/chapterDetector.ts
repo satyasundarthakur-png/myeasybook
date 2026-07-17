@@ -1,5 +1,6 @@
 import type { Chapter } from '../types/book';
-import { groqComplete } from './groq';
+import { aiComplete } from './aiClient';
+import type { AiProviderConfig } from './aiTypes';
 import { makeId } from './shared';
 
 function wordCount(text: string): number {
@@ -201,8 +202,7 @@ function splitByBlankGaps(rawText: string): Chapter[] | null {
  */
 async function splitWithAI(
   rawText: string,
-  apiKey: string,
-  model: string
+  config: AiProviderConfig
 ): Promise<Chapter[]> {
   // Work on a compact outline: first ~200 chars of every paragraph, indexed.
   const paragraphs = rawText.split(/\n\n+/);
@@ -217,9 +217,8 @@ Return ONLY a JSON array of objects like {"paragraphIndex": number, "title": str
 Paragraph previews:
 ${outline}`;
 
-  const response = await groqComplete(
-    apiKey,
-    model,
+  const response = await aiComplete(
+    config,
     [
       { role: 'system', content: 'You output strict JSON only, no markdown fences, no commentary.' },
       { role: 'user', content: prompt },
@@ -254,7 +253,7 @@ ${outline}`;
 
 export async function detectChapters(
   rawText: string,
-  aiFallback: { apiKey: string; model: string } | null
+  aiFallback: AiProviderConfig | null
 ): Promise<{ chapters: Chapter[]; method: 'headings' | 'adhyaya-markers' | 'blank-gaps' | 'ai' | 'single' }> {
   const byHeading = splitByHeadingPattern(rawText);
   if (byHeading) return { chapters: byHeading, method: 'headings' };
@@ -267,7 +266,7 @@ export async function detectChapters(
 
   if (aiFallback?.apiKey) {
     try {
-      const aiChapters = await splitWithAI(rawText, aiFallback.apiKey, aiFallback.model);
+      const aiChapters = await splitWithAI(rawText, aiFallback);
       if (aiChapters.length >= 2) return { chapters: aiChapters, method: 'ai' };
     } catch {
       // fall through to single-chapter fallback below

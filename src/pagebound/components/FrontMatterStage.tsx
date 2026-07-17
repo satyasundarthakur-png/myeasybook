@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { PenLine, ArrowRight, Loader2 } from 'lucide-react';
-import { useBookStore } from '../store/useBookStore';
+import { useBookStore, useActiveAiKeyPresent } from '../store/useBookStore';
 
 export default function FrontMatterStage() {
-  const { introduction, generateIntro, setStage, groqApiKey, isProcessing } = useBookStore();
+  const { introduction, generateIntro, setStage, isProcessing } = useBookStore();
+  const hasAiKey = useActiveAiKeyPresent();
   const [error, setError] = useState<string | null>(null);
 
   return (
@@ -15,7 +16,7 @@ export default function FrontMatterStage() {
       </p>
 
       <button
-        disabled={!groqApiKey || isProcessing}
+        disabled={!hasAiKey || isProcessing}
         onClick={async () => {
           setError(null);
           try {
@@ -30,8 +31,8 @@ export default function FrontMatterStage() {
         {introduction ? 'Regenerate introduction' : 'Generate introduction'}
       </button>
 
-      {!groqApiKey && (
-        <p className="text-sm text-brass-dim mb-4">Add a Groq API key (AI Settings, bottom of the sidebar) to generate a draft.</p>
+      {!hasAiKey && (
+        <p className="text-sm text-brass-dim mb-4">Add an API key (AI Settings, bottom of the sidebar) to generate a draft.</p>
       )}
       {error && <p className="text-sm text-rust mb-4">{error}</p>}
 

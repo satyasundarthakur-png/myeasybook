@@ -1,5 +1,7 @@
 import type { Chapter, IndexEntry } from '../types/book';
-import { chunkText, groqComplete } from './groq';
+import { chunkText } from './groq';
+import { aiComplete } from './aiClient';
+import type { AiProviderConfig } from './aiTypes';
 import { sleep, resolveChapterText } from './shared';
 
 const POLISH_SYSTEM = `You are a professional line editor preparing a manuscript for publication.
@@ -10,15 +12,13 @@ Return only the polished text, with no preamble, no headings, and no notes.`;
 
 export async function polishChapterText(
   text: string,
-  apiKey: string,
-  model: string
+  config: AiProviderConfig
 ): Promise<string> {
   const chunks = chunkText(text, 6000);
   const polished: string[] = [];
   for (const chunk of chunks) {
-    const result = await groqComplete(
-      apiKey,
-      model,
+    const result = await aiComplete(
+      config,
       [
         { role: 'system', content: POLISH_SYSTEM },
         { role: 'user', content: chunk },
@@ -49,8 +49,7 @@ function sampleChapters(chapters: Chapter[], max: number): Chapter[] {
 export async function generateIntroduction(
   chapters: Chapter[],
   bookTitle: string,
-  apiKey: string,
-  model: string
+  config: AiProviderConfig
 ): Promise<string> {
   const sample = sampleChapters(chapters, MAX_INTRO_SAMPLE);
   const excerptChars = sample.length > 12 ? 400 : 900;
@@ -70,9 +69,8 @@ Return only the introduction text, no heading, no markdown.
 
 ${summarySource}${coverageNote}`;
 
-  const result = await groqComplete(
-    apiKey,
-    model,
+  const result = await aiComplete(
+    config,
     [
       { role: 'system', content: 'You are a skilled book editor writing front-matter introductions.' },
       { role: 'user', content: prompt },
@@ -84,8 +82,7 @@ ${summarySource}${coverageNote}`;
 
 export async function extractIndexEntries(
   chapters: Chapter[],
-  apiKey: string,
-  model: string,
+  config: AiProviderConfig,
   onProgress?: (processed: number, total: number) => void
 ): Promise<IndexEntry[]> {
   const entriesMap = new Map<string, Set<number>>();
@@ -113,9 +110,8 @@ Return ONLY a JSON array of objects: {"term": string, "chapter": number}. No mar
 ${source}`;
 
     try {
-      const response = await groqComplete(
-        apiKey,
-        model,
+      const response = await aiComplete(
+        config,
         [
           { role: 'system', content: 'You output strict JSON only.' },
           { role: 'user', content: prompt },

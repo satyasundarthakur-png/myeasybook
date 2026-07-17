@@ -13,12 +13,13 @@ import {
   Maximize2,
   Minimize2,
 } from 'lucide-react';
-import { useBookStore } from '../store/useBookStore';
+import { useBookStore, useActiveAiKeyPresent } from '../store/useBookStore';
 import type { Chapter } from '../types/book';
 
 export default function PolishStage() {
-  const { chapters, groups, polishAllChapters, polishSingleChapter, updateChapterText, setStage, groqApiKey, polishProgress, lastBatchError } =
+  const { chapters, groups, polishAllChapters, polishSingleChapter, updateChapterText, setStage, polishProgress, lastBatchError } =
     useBookStore();
+  const hasAiKey = useActiveAiKeyPresent();
   const [activeId, setActiveId] = useState(chapters[0]?.id ?? null);
   const active = chapters.find((c) => c.id === activeId) ?? chapters[0];
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +48,7 @@ export default function PolishStage() {
                 : `${chapters.filter((c) => c.status === 'polished').length}/${chapters.length} polished`}
             </p>
             <button
-              disabled={!groqApiKey}
+              disabled={!hasAiKey}
               onClick={async () => {
                 setError(null);
                 try {
@@ -113,7 +114,7 @@ export default function PolishStage() {
                         </button>
                         {c.status !== 'polishing' && (
                           <button
-                            disabled={!groqApiKey}
+                            disabled={!hasAiKey}
                             title={c.status === 'polished' ? 'Re-polish this chapter' : 'Polish this chapter'}
                             onClick={async (e) => {
                               e.stopPropagation();
@@ -142,9 +143,9 @@ export default function PolishStage() {
       {/* Main content: header + panels (each owns its own scroll) + pinned footer */}
       <div className="flex-1 flex flex-col h-full min-w-0 bg-paper-bright">
         <div className="flex-1 overflow-hidden flex flex-col px-8 py-6 min-h-0">
-          {!groqApiKey && (
+          {!hasAiKey && (
             <div className="mb-4 border border-brass/40 bg-brass/5 text-brass-dim text-sm font-body px-4 py-3 shrink-0">
-              Add a Groq API key (AI Settings, bottom of the sidebar) to run AI polishing. You can still skip ahead and export the
+              Add an API key (AI Settings, bottom of the sidebar) to run AI polishing. You can still skip ahead and export the
               manuscript as-is.
             </div>
           )}
@@ -217,7 +218,7 @@ export default function PolishStage() {
                     <p className="font-mono text-xs text-ink/40 tracking-wide">POLISHED (EDITABLE)</p>
                     <div className="flex items-center gap-3">
                       <button
-                        disabled={!groqApiKey || active.status === 'polishing'}
+                        disabled={!hasAiKey || active.status === 'polishing'}
                         onClick={async () => {
                           setError(null);
                           try {

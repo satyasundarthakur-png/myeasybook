@@ -1,10 +1,10 @@
 import { useCallback, useState } from 'react';
 import { FileText } from 'lucide-react';
-import { useBookStore } from '../store/useBookStore';
+import { useBookStore, useActiveAiKeyPresent } from '../store/useBookStore';
 
 export default function UploadStage() {
   const uploadFile = useBookStore((s) => s.uploadFile);
-  const groqApiKey = useBookStore((s) => s.groqApiKey);
+  const hasAiKey = useActiveAiKeyPresent();
   const [dragOver, setDragOver] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -40,9 +40,9 @@ export default function UploadStage() {
         and exporting a publish-ready EPUB, DOCX, or print PDF.
       </p>
 
-      {!groqApiKey && (
+      {!hasAiKey && (
         <div className="mb-6 border border-brass/40 bg-brass/5 text-brass-dim text-sm font-body px-4 py-3">
-          Tip: add your Groq API key (AI Settings, bottom of the sidebar) before uploading — it improves
+          Tip: add an AI provider API key (AI Settings, bottom of the sidebar) before uploading — it improves
           chapter detection for manuscripts without clear "Chapter" headings, and unlocks polishing, the
           introduction, and the index later.
         </div>
