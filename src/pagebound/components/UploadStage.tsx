@@ -11,9 +11,9 @@ export default function UploadStage() {
   const handleFile = useCallback(
     async (file: File | undefined) => {
       if (!file) return;
-      const ok = /\.(docx|txt|md)$/i.test(file.name);
+      const ok = /\.(docx|pdf|txt)$/i.test(file.name);
       if (!ok) {
-        setError('Please upload a .docx, .txt, or .md file.');
+        setError('Please upload a .docx, .pdf, or .txt file.');
         return;
       }
       setError(null);
@@ -35,7 +35,7 @@ export default function UploadStage() {
       <h1 className="text-4xl font-bold mt-2 mb-4 text-ink">Bring your manuscript</h1>
 
       <p className="text-ink/65 text-lg leading-relaxed max-w-2xl mb-8 font-body">
-        Upload a Word document or plain text file. Pagebound detects your chapters, then walks you
+        Upload a Word document, PDF, or plain text file. Pagebound detects your chapters, then walks you
         through polishing the prose, writing an introduction, building an index, designing a cover,
         and exporting a publish-ready EPUB, DOCX, or print PDF.
       </p>
@@ -69,10 +69,10 @@ export default function UploadStage() {
         <p className="text-ink/85 font-semibold text-lg font-body">
           Drop your manuscript here, or click to browse
         </p>
-        <p className="text-parchment-muted text-sm mt-2 font-mono">.DOCX · .TXT · .MD</p>
+        <p className="text-parchment-muted text-sm mt-2 font-mono">.DOCX · .PDF · .TXT</p>
         <input
           type="file"
-          accept=".docx,.txt,.md"
+          accept=".docx,.pdf,.txt"
           className="hidden"
           onChange={(e) => handleFile(e.target.files?.[0])}
         />

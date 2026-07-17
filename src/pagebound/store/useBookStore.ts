@@ -98,7 +98,7 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
       const { chapters } = await detectChapters(cleanedText, apiKey ? { apiKey, model } : null);
       const groups = groupChapters(chapters);
 
-      const guessedTitle = file.name.replace(/\.(docx|txt|md)$/i, '').replace(/[_-]+/g, ' ');
+      const guessedTitle = file.name.replace(/\.(docx|pdf|txt)$/i, '').replace(/[_-]+/g, ' ');
       set((s) => ({
         chapters,
         groups,
