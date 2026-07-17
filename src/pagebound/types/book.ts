@@ -48,6 +48,9 @@ export interface CoverConfig {
   author: string;
   palette: 'leather' | 'brass' | 'moss' | 'ink';
   layout: 'classic' | 'modern' | 'literary';
+  /** Data URL of an author-uploaded cover image. When set, this replaces
+   * the procedurally generated SVG cover in every export. */
+  customImage: string | null;
 }
 
 export interface BookMeta {

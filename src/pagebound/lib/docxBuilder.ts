@@ -6,8 +6,10 @@ import {
   AlignmentType,
   PageBreak,
   TextRun,
+  ImageRun,
 } from 'docx';
 import type { BookState } from '../types/book';
+import { resolveCoverImageDataUrl } from './coverGenerator';
 
 function bodyParagraphs(text: string): Paragraph[] {
   return text
@@ -15,20 +17,32 @@ function bodyParagraphs(text: string): Paragraph[] {
     .map((p) => new Paragraph({ children: [new TextRun(p.trim())], spacing: { after: 200 } }));
 }
 
+function dataUrlToUint8Array(dataUrl: string): Uint8Array {
+  const base64 = dataUrl.split(',')[1];
+  const binary = atob(base64);
+  const bytes = new Uint8Array(binary.length);
+  for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+  return bytes;
+}
+
 export async function buildDocx(book: BookState): Promise<Blob> {
   const children: Paragraph[] = [];
 
-  // Title page
+  // Cover page — embeds the actual designed/uploaded cover image, not just
+  // plain text. Previously this section only wrote the title and author as
+  // text, silently dropping whatever cover the author designed or uploaded.
+  const coverDataUrl = await resolveCoverImageDataUrl(book.cover);
   children.push(
     new Paragraph({
-      text: book.meta.title || 'Untitled',
-      heading: HeadingLevel.TITLE,
+      children: [
+        new ImageRun({
+          type: 'png',
+          data: dataUrlToUint8Array(coverDataUrl),
+          transformation: { width: 400, height: 600 },
+        }),
+      ],
       alignment: AlignmentType.CENTER,
-      spacing: { before: 3000, after: 400 },
-    }),
-    new Paragraph({
-      children: [new TextRun({ text: book.meta.author || '', italics: true })],
-      alignment: AlignmentType.CENTER,
+      spacing: { before: 400 },
     }),
     new Paragraph({ children: [new PageBreak()] })
   );

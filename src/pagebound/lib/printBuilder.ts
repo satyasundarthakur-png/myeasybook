@@ -1,5 +1,5 @@
 import type { BookState } from '../types/book';
-import { generateCoverSVG } from './coverGenerator';
+import { resolveCoverImageDataUrl } from './coverGenerator';
 import { escapeXml as escapeHtml } from './shared';
 
 function paragraphs(text: string): string {
@@ -15,8 +15,8 @@ function paragraphs(text: string): string {
  * dependency — kept intentionally simple so it works the same way once
  * deployed on Lovable.
  */
-export function buildPrintableHtml(book: BookState): string {
-  const coverSvg = generateCoverSVG(book.cover);
+export async function buildPrintableHtml(book: BookState): Promise<string> {
+  const coverDataUrl = await resolveCoverImageDataUrl(book.cover);
 
   const chapterSections = book.chapters
     .map(
@@ -67,7 +67,7 @@ export function buildPrintableHtml(book: BookState): string {
   @page { size: 6in 9in; margin: 0.75in; }
   body { font-family: Georgia, 'Times New Roman', serif; color: #1c1b19; line-height: 1.65; }
   .cover-page { page-break-after: always; text-align: center; }
-  .cover-page svg { width: 100%; max-width: 4.5in; height: auto; }
+  .cover-page img { width: 100%; max-width: 4.5in; height: auto; }
   h1 { font-size: 1.9em; margin-bottom: 0.1em; }
   h2.subtitle { font-weight: normal; font-style: italic; color: #6b2737; margin-top: 0; }
   .chapter { page-break-before: always; }
@@ -82,7 +82,7 @@ export function buildPrintableHtml(book: BookState): string {
 </style>
 </head>
 <body>
-  <div class="cover-page">${coverSvg}</div>
+  <div class="cover-page"><img src="${coverDataUrl}" alt="Cover" /></div>
   ${tocSection}
   ${introSection}
   ${chapterSections}

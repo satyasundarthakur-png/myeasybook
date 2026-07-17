@@ -43,18 +43,25 @@ export default function ExportStage() {
     }
   };
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     setError(null);
-    const html = buildPrintableHtml(book);
     const win = window.open('', '_blank');
     if (!win) {
       setError('Please allow pop-ups to open the print-ready view.');
       return;
     }
-    win.document.write(html);
-    win.document.close();
-    win.focus();
-    setTimeout(() => win.print(), 400);
+    win.document.write('<p style="font-family: sans-serif; padding: 2rem;">Preparing your book…</p>');
+    try {
+      const html = await buildPrintableHtml(book);
+      win.document.open();
+      win.document.write(html);
+      win.document.close();
+      win.focus();
+      setTimeout(() => win.print(), 400);
+    } catch (e) {
+      win.close();
+      setError((e as Error).message);
+    }
   };
 
   const totalWords = book.chapters.reduce((sum, c) => sum + c.wordCount, 0);

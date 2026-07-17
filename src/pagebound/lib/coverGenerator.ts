@@ -100,3 +100,16 @@ export function svgToPngDataUrl(svg: string, width = 1600, height = 2400): Promi
     img.src = url;
   });
 }
+
+/**
+ * Resolves the actual cover image to use in an export: the author's
+ * uploaded image if they provided one, otherwise the procedurally
+ * generated SVG cover rendered to PNG. Every export builder (EPUB, DOCX,
+ * print) calls this instead of deciding for itself, so "use the custom
+ * image if present" only has to be correct in one place.
+ */
+export async function resolveCoverImageDataUrl(cover: CoverConfig): Promise<string> {
+  if (cover.customImage) return cover.customImage;
+  const svg = generateCoverSVG(cover);
+  return svgToPngDataUrl(svg);
+}

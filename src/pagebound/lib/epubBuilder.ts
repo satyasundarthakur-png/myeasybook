@@ -1,6 +1,6 @@
 import JSZip from 'jszip';
 import type { BookState } from '../types/book';
-import { generateCoverSVG, svgToPngDataUrl } from './coverGenerator';
+import { resolveCoverImageDataUrl } from './coverGenerator';
 import { escapeXml } from './shared';
 
 function paragraphsToXhtml(text: string): string {
@@ -48,8 +48,7 @@ export async function buildEpub(book: BookState): Promise<Blob> {
   oebps.file('styles.css', STYLE_CSS);
 
   // Cover image
-  const coverSvg = generateCoverSVG(book.cover);
-  const coverPngDataUrl = await svgToPngDataUrl(coverSvg);
+  const coverPngDataUrl = await resolveCoverImageDataUrl(book.cover);
   oebps.file('cover.png', dataUrlToUint8Array(coverPngDataUrl), { base64: false, binary: true });
 
   oebps.file(
