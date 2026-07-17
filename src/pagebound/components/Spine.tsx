@@ -1,3 +1,4 @@
+import { History, Trash2 } from 'lucide-react';
 import type { Stage } from '../types/book';
 import { useBookStore } from '../store/useBookStore';
 import AiSettingsPanel from './AiSettingsPanel';
@@ -30,67 +31,84 @@ function Colophon() {
 }
 
 export default function Spine() {
-  const { stage, setStage, chapters } = useBookStore();
-  const currentIdx = STAGES.findIndex((s) => s.id === stage);
+  const { stage, setStage, chapters, reset } = useBookStore();
+
+  const handleReset = () => {
+    if (confirm('Are you sure you want to reset your project? This will clear your current manuscript.')) {
+      reset();
+    }
+  };
 
   return (
-    <aside className="w-64 shrink-0 bg-ink relative flex flex-col shadow-[2px_0_16px_rgba(0,0,0,0.25)]">
-      {/* Imprint mark */}
-      <div className="px-6 pt-8 pb-6">
-        <Colophon />
-        <p className="font-display italic text-2xl text-paper-bright mt-3 leading-none">Pagebound</p>
-        <p className="font-mono text-[10px] tracking-[0.25em] text-paper/40 mt-2 uppercase">
-          International Editions
-        </p>
-      </div>
-      <div className="mx-6 border-t border-ink-faint" />
+    <aside className="w-64 shrink-0 bg-sidebar text-slate-300 h-full flex flex-col justify-between p-6 border-r border-slate-800">
+      <div>
+        {/* Brand header */}
+        <div className="mb-8">
+          <Colophon />
+          <h1 className="text-2xl font-display italic font-bold tracking-wide text-white mt-3 leading-none">
+            Pagebound
+          </h1>
+          <p className="text-[10px] tracking-[0.2em] text-slate-500 font-mono mt-1 uppercase">
+            International Editions
+          </p>
+        </div>
 
-      {/* Catalog-style stage list */}
-      <nav className="flex-1 px-3 py-4">
-        {STAGES.map((s, idx) => {
-          const isActive = s.id === stage;
-          const isDone = idx < currentIdx;
-          const disabled = s.id !== 'upload' && chapters.length === 0;
+        {/* Catalog-style stage list */}
+        <nav className="space-y-4">
+          {STAGES.map((s, idx) => {
+            const isActive = s.id === stage;
+            const disabled = s.id !== 'upload' && chapters.length === 0;
 
-          return (
-            <button
-              key={s.id}
-              disabled={disabled}
-              onClick={() => setStage(s.id)}
-              className={`group w-full flex items-center px-3 py-3 text-left border-l-2 transition-colors ${
-                isActive
-                  ? 'border-amber-500 bg-ink-soft/60'
-                  : 'border-transparent hover:bg-ink-soft/30'
-              } ${disabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}
-            >
-              <span
-                className={`font-mono text-[13px] tracking-wide uppercase transition-colors ${
-                  isActive
-                    ? 'text-amber-500 font-semibold'
-                    : isDone
-                      ? 'text-slate-300 hover:text-slate-200'
-                      : 'text-slate-400 hover:text-slate-200'
-                }`}
+            return (
+              <button
+                key={s.id}
+                disabled={disabled}
+                onClick={() => setStage(s.id)}
+                className={`w-full flex items-center gap-4 text-left group border-l-2 pl-2 -ml-2 ${
+                  isActive ? 'border-amber-500' : 'border-transparent'
+                } ${disabled ? 'opacity-30 cursor-not-allowed' : 'cursor-pointer'}`}
               >
-                {CatalogNumber(idx + 1)} {s.label.toUpperCase()}
-              </span>
-            </button>
-          );
-        })}
-      </nav>
-
-      {/* AI configuration, relocated from the header to keep the workspace clean */}
-      <div className="mx-6 border-t border-ink-faint" />
-      <div className="px-3 py-4">
-        <AiSettingsPanel />
+                <span
+                  className={`text-xs font-mono transition-colors ${
+                    isActive ? 'text-amber-500' : 'text-slate-500 group-hover:text-amber-500'
+                  }`}
+                >
+                  {CatalogNumber(idx + 1)}
+                </span>
+                <span
+                  className={`text-sm font-semibold tracking-wider transition-colors ${
+                    isActive ? 'text-white' : 'text-slate-300 group-hover:text-white'
+                  }`}
+                >
+                  {s.label.toUpperCase()}
+                </span>
+              </button>
+            );
+          })}
+        </nav>
       </div>
 
-      {/* Publisher's imprint line */}
-      <div className="mx-6 border-t border-ink-faint" />
-      <div className="px-6 py-5">
-        <p className="font-mono text-[10px] tracking-[0.15em] text-paper/35 uppercase">
-          Pagebound Editions
-          <span className="mx-1.5 text-paper/20">·</span>
+      {/* Bottom panel: AI settings + project management actions */}
+      <div className="space-y-2 border-t border-slate-800 pt-4">
+        <AiSettingsPanel />
+
+        <button
+          onClick={() => alert('Opening version history…')}
+          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-slate-800/50 rounded-md transition-all group font-mono"
+        >
+          <History className="h-4 w-4 text-slate-500 group-hover:text-amber-500 transition-colors" />
+          <span>VERSION HISTORY</span>
+        </button>
+
+        <button
+          onClick={handleReset}
+          className="w-full flex items-center gap-3 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-950/30 rounded-md transition-all group font-mono"
+        >
+          <Trash2 className="h-4 w-4 text-red-500/70 group-hover:text-red-400 transition-colors" />
+          <span>RESET PROJECT</span>
+        </button>
+
+        <p className="font-mono text-[10px] tracking-[0.15em] text-slate-600 uppercase pt-2">
           {chapters.length > 0 ? `${chapters.length} chapters` : 'No manuscript'}
         </p>
       </div>
