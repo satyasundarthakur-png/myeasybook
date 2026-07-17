@@ -393,7 +393,9 @@ export const useBookStore = create<BookState & BookActions>((set, get) => ({
 
   updateChapterOcrFixedText: (id: string, text: string) =>
     set((s) => ({
-      chapters: s.chapters.map((c) => (c.id === id ? { ...c, ocrFixedText: text } : c)),
+      chapters: s.chapters.map((c) =>
+        c.id === id ? { ...c, ocrFixedText: text, ocrStatus: text.trim() ? 'fixed' : c.ocrStatus } : c
+      ),
     })),
 
   generateIntro: async () => {

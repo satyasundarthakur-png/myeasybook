@@ -189,14 +189,7 @@ export default function OcrFixStage() {
                     </button>
                   </div>
                   <textarea
-                    value={active.ocrFixedText ?? ''}
-                    placeholder={
-                      active.ocrStatus === 'fixed'
-                        ? ''
-                        : active.ocrStatus === 'error'
-                          ? 'Fixing failed — click "Fix Chapter" to try again, or edit directly.'
-                          : 'Not fixed yet — click "Fix all" or "Fix Chapter". Or skip this step entirely if the source is already clean.'
-                    }
+                    value={active.ocrFixedText ?? active.originalText}
                     onChange={(e) => updateChapterOcrFixedText(active.id, e.target.value)}
                     className="flex-1 min-h-0 w-full bg-paper border border-paper-dim p-4 resize-none font-display text-[15px] text-ink leading-relaxed"
                   />
